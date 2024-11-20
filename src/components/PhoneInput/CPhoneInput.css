@@ -1,0 +1,69 @@
+.custom-phone-input {
+    width: 100% !important;
+    background-color: var(--desert-sand) !important;
+    color: var(--deep-brown) !important;
+    border: 0px !important;
+    font-size: 1rem !important;
+    border: 1px solid var(--deep-brown) !important;
+    border-radius: 10px !important;
+    height: 43px !important;
+    color: var(--white);
+}
+
+.custom-phone-container {
+    width: 100%;
+    border-radius: 10px;
+    background-color: transparent !important;
+}
+
+.custom-phone-button {
+    background-color: var(--desert-sand) !important;
+    border: 0px !important;
+    border: 1px solid var(--deep-brown) !important;
+    border-radius: 10px !important;
+    color: var(--white);
+}
+
+.custom-phone-input:focus {
+    outline: none;
+    border: 1px solid var(--muted-olive) !important;
+    background-color: var(--soft-green) !important;
+    color: var(--warm-beige) !important;
+    box-shadow: 0 0 0 0.1rem var(--muted-olive);
+}
+.selected-flag:hover,.selected-flag:focus {
+    background-color: var(--soft-green) !important;
+}
+
+.selected-flag{
+    background-color: var(--desert-sand) !important;
+    border: 0.5px solid var(--deep-brown) !important;
+    border-radius: 10px !important;
+}
+
+.custom-phone-dropdown {
+    margin-top: 10px!important;
+    width: 14.8rem!important;
+    height: min-content!important;
+    background-color: var(--desert-sand)!important;
+    text-emphasis-color: var(--deep-brown)!important;
+}
+
+.custom-phone-search{
+    background-color: var(--desert-sand) !important;
+    padding: 0px !important;
+    padding-top: 5px !important;
+    width: 100% !important;
+    display: flex;
+}
+
+.custom-phone-search-box{
+    margin: 0px !important;
+    width: 100% !important;
+    background-color: var(--desert-sand) !important;
+    color: var(--deep-brown) !important;
+    border: 0px !important;
+    border: 1px solid var(--deep-brown) !important;
+    border-radius: 10px !important;
+    color: var(--white);
+}

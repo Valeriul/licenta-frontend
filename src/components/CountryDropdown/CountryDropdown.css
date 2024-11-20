@@ -1,0 +1,35 @@
+.p-dropdown-clearable {
+    width: 100%;
+    border: 1px solid var(--deep-brown);
+    border-radius: 10px;
+    background-color: var(--desert-sand);
+    font-size: 0.8rem;
+    color: var(--white);
+}
+
+.p-dropdown-panel {
+    margin-top: 10px;
+    width: 11.5rem;
+    height: min-content;
+    background-color: var(--desert-sand);
+    text-emphasis-color: var(--deep-brown);
+}
+
+.p-inputwrapper-focus{
+    border-radius: 10px;
+    border: 1px solid var(--muted-olive);
+    background-color: var(--soft-green);
+    color: var(--warm-beige);
+    box-shadow: 0 0 0 0.1rem var(--muted-olive);
+}
+.p-dropdown-items{
+    padding-left: 5px;
+}
+
+.p-placeholder{
+    color: var(--deep-brown);
+}
+
+.p-dropdown-header{
+    background-color: var(--desert-sand);
+}
