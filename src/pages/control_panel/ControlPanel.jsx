@@ -84,7 +84,7 @@ function ControlPanel() {
         if (userID) {
             try {
                 const response = await fetch(
-                    "http://localhost:5000" +`/Peripheral/getLoadingData?id_user=${userID}`
+                    process.env.REACT_APP_API_URL +`/Peripheral/getLoadingData?id_user=${userID}`
                 );
                 if (response.ok) {
                     const data = await response.json();
@@ -145,7 +145,7 @@ function ControlPanel() {
                 })),
             }));
 
-            await fetch("http://localhost:5000" +`/Peripheral/saveGridPosition`, {
+            await fetch(process.env.REACT_APP_API_URL +`/Peripheral/saveGridPosition`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({

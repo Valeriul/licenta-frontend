@@ -54,7 +54,7 @@ function RegisterContainer({ onLoginClick }) {
 
         delete userData.confirmPassword;
 
-        fetch("http://localhost:5000" +'/User/register', {
+        fetch(process.env.REACT_APP_API_URL +'/User/register', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData),
@@ -67,7 +67,7 @@ function RegisterContainer({ onLoginClick }) {
             })
             .then(data => {
                 setIsFlipped(!isFlipped);
-                fetch("http://localhost:5000" +'/Mail/sendVerificationEmail', {
+                fetch(process.env.REACT_APP_API_URL +'/Mail/sendVerificationEmail', {
                     method: 'POST',
                     headers: {
                         'Accept': '*/*',

@@ -19,7 +19,7 @@ function CardHeader({ initialName, initialLocation, battery, uuid }) {
     const renamePeripheral = async (newName) => {
         try {
             const response = await fetch(
-                "http://localhost:5000" +`/Peripheral/renamePeripheral?id_user=${userId}&uuid=${uuid}&newName=${encodeURIComponent(newName)}`,
+                process.env.REACT_APP_API_URL +`/Peripheral/renamePeripheral?id_user=${userId}&uuid=${uuid}&newName=${encodeURIComponent(newName)}`,
                 {
                     method: "POST",
                     headers: {
@@ -42,7 +42,7 @@ function CardHeader({ initialName, initialLocation, battery, uuid }) {
     const relocatePeripheral = async (newLocation) => {
         try {
             const response = await fetch(
-                "http://localhost:5000" +`/Peripheral/relocatePeripheral?id_user=${userId}&uuid=${uuid}&newLocation=${encodeURIComponent(newLocation)}`,
+                process.env.REACT_APP_API_URL +`/Peripheral/relocatePeripheral?id_user=${userId}&uuid=${uuid}&newLocation=${encodeURIComponent(newLocation)}`,
                 {
                     method: "POST",
                     headers: {
