@@ -59,13 +59,13 @@ function RegisterContainer({ onLoginClick }) {
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(userData),
         })
-            .then(async (response) => {
+            .then(async (response,formData) => {
                 if (!response.ok) {
                     const errorData = await response.json();
                     throw new Error(errorData.message);
                 }
             })
-            .then(data => {
+            .then(async responseData => {
                 setIsFlipped(!isFlipped);
                 fetch(process.env.REACT_APP_API_URL +'/Mail/sendVerificationEmail', {
                     method: 'POST',
@@ -75,6 +75,24 @@ function RegisterContainer({ onLoginClick }) {
                     },
                     body: JSON.stringify(formData.email)
                 });
+
+                const response = await fetch(process.env.REACT_APP_API_URL +'/User/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email: formData.email, password: formData.password })
+                });
+    
+                if (!response.ok) {
+                    throw new Error('Failed to log in');
+                }
+    
+                const data = await response.json();
+                const id_user = data.user_id;
+    
+                
+                login({ id_user });
+
+                window.location.href = '/control-panel';
             })
             .catch(error => {
                 toast.current.show({ severity: 'error', summary: 'Error', detail: error.message, life: 3000 });
