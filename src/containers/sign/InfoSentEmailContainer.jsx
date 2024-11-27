@@ -18,7 +18,7 @@ function InfoSentEmailContainer({ email }) {
     }, [timer]);
 
     const handleResendEmailVerification = (email) => {
-        fetch(process.env.REACT_APP_API_URL +'/Mail/sendVerificationEmail', {
+        fetch("http://localhost:5000" +'/Mail/sendVerificationEmail', {
             method: 'POST',
             headers: {
                 'Accept': '*/*',

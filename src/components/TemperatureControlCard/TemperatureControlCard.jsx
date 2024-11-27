@@ -15,7 +15,7 @@ function TemperatureControlCard({ initialTemperature, initialName, initialLocati
     const handleSetTemperature = (value) => {
         setTemperature(value);
 
-        fetch(process.env.REACT_APP_API_URL +`/Peripheral/makeControlCommand?id_user=${userID}`, {
+        fetch("http://localhost:5000" +`/Peripheral/makeControlCommand?id_user=${userID}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -41,7 +41,7 @@ function TemperatureControlCard({ initialTemperature, initialName, initialLocati
     const handleIncrementTemperature = () => {
         setTemperature(prev => Math.min(prev + 1, 35));
 
-        fetch(process.env.REACT_APP_API_URL +`/Peripheral/makeControlCommand?id_user=${userID}`, {
+        fetch("http://localhost:5000" +`/Peripheral/makeControlCommand?id_user=${userID}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -67,7 +67,7 @@ function TemperatureControlCard({ initialTemperature, initialName, initialLocati
     const handleDecrementTemperature = () => {
         setTemperature(prev => Math.max(prev - 1, 15));
 
-        fetch(process.env.REACT_APP_API_URL +`/Peripheral/makeControlCommand?id_user=${userID}`, {
+        fetch("http://localhost:5000" +`/Peripheral/makeControlCommand?id_user=${userID}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',

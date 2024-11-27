@@ -17,7 +17,7 @@ function RequiredParamVerifyLogin({ children }) {
     return <Navigate to="/404" replace />;
   }
 
-  fetch(process.env.REACT_APP_API_URL +`/User/isVerified?salt=${paramS}`, {
+  fetch("http://localhost:5000" +`/User/isVerified?salt=${paramS}`, {
     method: 'GET',
     headers: {
       'Content-Type': 'application/json',

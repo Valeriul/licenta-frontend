@@ -21,7 +21,7 @@ function VerifyLogin({ salt }) {
         const ipAddress = `${segment1}.${segment2}.${segment3}.${segment4}`;
         if (segment1 && segment2 && segment3 && segment4) {
             setIsButtonDisabled(true);
-            fetch(process.env.REACT_APP_API_URL +'/User/verifyUser', {
+            fetch("http://localhost:5000" +'/User/verifyUser', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ "salt": salt, "centralUrl": ipAddress })
@@ -29,7 +29,7 @@ function VerifyLogin({ salt }) {
                 .then(response => {
                     toast.current.show({ severity: 'success', summary: 'Success', detail: 'IP Verified Successfully.Redirecting to the control panel', life: 3000 });
 
-                    fetch(process.env.REACT_APP_API_URL +'/User/loginWithSalt', {
+                    fetch("http://localhost:5000" +'/User/loginWithSalt', {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json' },
                         body: JSON.stringify({ "salt": salt })
