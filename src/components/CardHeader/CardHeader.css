@@ -1,0 +1,15 @@
+.custom-input {
+    font-family: inherit !important;
+    color: inherit !important;
+    background-color: transparent !important;
+    border: none !important;
+    outline: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    width: 100% !important;
+    box-sizing: border-box !important;
+}
+
+.card-header .custom-input:focus {
+    border-bottom: 1px solid var(--deep-brown) !important;
+}
