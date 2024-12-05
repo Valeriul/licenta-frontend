@@ -91,7 +91,22 @@ function ControlPanel() {
         }
     };
 
-    fetchInitializedData();
+    useEffect(() => {
+        const fetchInitializedData = async () => {
+            if (userID) {
+                try {
+                    const response = await fetch(
+                        `${process.env.REACT_APP_API_URL}/Peripheral/initializePeripheral?id_user=${userID}`
+                    );
+                } catch (error) {
+                    console.error("Error fetching initialized data:", error);
+                }
+            }
+        };
+
+        // Call the fetch function only once after userID is set
+        fetchInitializedData();
+    }, [userID]);
 
     const fetchLoadingData = async () => {
         if (userID) {
