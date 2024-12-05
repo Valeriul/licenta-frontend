@@ -27,6 +27,7 @@ function InfoSentEmailContainer({ email }) {
             body: JSON.stringify(email)
         });
         setIsResendButtonDisabled(true);
+        setTimer(30);
     };
 
     return <><h1 className="uk-text-left uk-text-bold">Email Verification</h1>

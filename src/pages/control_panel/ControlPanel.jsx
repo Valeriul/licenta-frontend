@@ -65,30 +65,43 @@ function DraggableCard({ peripheral, moveCard }) {
 function ControlPanel() {
     const { getUserId } = useUser();
     const [userID, setUserID] = useState(null);
-    const [peripherals, setPeripherals] = useState([]); 
+    const [peripherals, setPeripherals] = useState([]);
     const navigate = useNavigate();
 
-    
+
     useEffect(() => {
         const id = getUserId();
         if (!id) {
-            
+
             navigate("/", { replace: true });
         } else {
             setUserID(id);
         }
     }, [getUserId, navigate]);
 
-    
+    const fetchInitializedData = async () => {
+        if (userID) {
+            try {
+                const response = await fetch(
+                    process.env.REACT_APP_API_URL + `/Peripheral/initializePeripheral?id_user=${userID}`
+                );
+            } catch (error) {
+                console.error("Error fetching initialized data:", error);
+            }
+        }
+    };
+
+    fetchInitializedData();
+
     const fetchLoadingData = async () => {
         if (userID) {
             try {
                 const response = await fetch(
-                    process.env.REACT_APP_API_URL +`/Peripheral/getLoadingData?id_user=${userID}`
+                    process.env.REACT_APP_API_URL + `/Peripheral/getLoadingData?id_user=${userID}`
                 );
                 if (response.ok) {
                     const data = await response.json();
-                    setPeripherals(data); 
+                    setPeripherals(data);
                 } else {
                     console.error("Failed to fetch loading data:", response.statusText);
                 }
@@ -98,15 +111,15 @@ function ControlPanel() {
         }
     };
 
-    
-    useEffect(() => {
-        fetchLoadingData(); 
-        const interval = setInterval(fetchLoadingData, 5000); 
 
-        return () => clearInterval(interval); 
+    useEffect(() => {
+        fetchLoadingData();
+        const interval = setInterval(fetchLoadingData, 5000);
+
+        return () => clearInterval(interval);
     }, [userID]);
 
-    
+
     const moveCard = (fromUuid, toUuid) => {
         const fromIndex = peripherals.findIndex(
             (p) => p.uuid_Peripheral === fromUuid
@@ -118,7 +131,7 @@ function ControlPanel() {
             const [movedItem] = updatedPeripherals.splice(fromIndex, 1);
             updatedPeripherals.splice(toIndex, 0, movedItem);
 
-            
+
             const peripheralsWithUpdatedPositions = updatedPeripherals.map(
                 (peripheral, index) => ({
                     ...peripheral,
@@ -126,15 +139,15 @@ function ControlPanel() {
                 })
             );
 
-            
+
             setPeripherals(peripheralsWithUpdatedPositions);
 
-            
+
             saveGridPosition(peripheralsWithUpdatedPositions);
         }
     };
 
-    
+
     const saveGridPosition = async (updatedPeripherals) => {
         try {
             console.log(JSON.stringify({
@@ -145,7 +158,7 @@ function ControlPanel() {
                 })),
             }));
 
-            await fetch(process.env.REACT_APP_API_URL +`/Peripheral/saveGridPosition`, {
+            await fetch(process.env.REACT_APP_API_URL + `/Peripheral/saveGridPosition`, {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
