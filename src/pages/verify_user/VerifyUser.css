@@ -1,25 +1,31 @@
-.custom-otp-input {
-    width: 40px;
-    font-size: 36px;
-    appearance: none;
-    text-align: center;
-    transition: all 0.2s;
-    background: var(--desert-sand);
-    border-bottom: 2px solid var(--deep-brown);
+.ip-input-container {
+    display: flex;
+    align-items: center;
 }
 
-.custom-otp-input:focus {
-    outline: 0 none;
-    color: var(--deep-brown);
-    border-bottom: 2px solid var(--deep-brown);
+.ip-segment {
+    width: 50px;
+    font-size: 20px;
+    text-align: center;
+    padding: 5px;
+    border: 2px solid var(--deep-brown);
+    background: var(--desert-sand);
+    border-radius: 5px;
+    margin: 0 5px;
+    transition: border-color 0.2s ease-in-out;
+}
+
+.ip-segment:focus {
+    outline: none;
+    border-color: var(--soft-amber);
 }
 
 .dot-separator {
-    font-size: 48px;
+    font-size: 24px;
     color: var(--deep-brown);
-    margin: 0 10px;
-    display: flex;
-    align-items: flex-end; /* Align the dot to the bottom */
-    justify-content: center;
-    transform: translateY(12px); 
+    margin: 0 5px;
+}
+
+.input-error {
+    border-color: red !important;
 }

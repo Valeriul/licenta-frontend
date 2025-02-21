@@ -1,0 +1,40 @@
+.ip-display-container {
+    text-align: center;
+    margin-top: 20px;
+}
+
+.connecting-text {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--deep-brown);
+}
+
+.connected-text {
+    font-size: 20px;
+    font-weight: bold;
+    color: var(--deep-brown);
+    margin-bottom: 10px;
+}
+
+.ip-display {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.ip-segment {
+    width: 50px;
+    font-size: 24px;
+    text-align: center;
+    padding: 5px;
+    border: 2px solid var(--deep-brown);
+    background: var(--desert-sand);
+    border-radius: 5px;
+    margin: 0 5px;
+}
+
+.dot-separator {
+    font-size: 24px;
+    color: var(--deep-brown);
+    margin: 0 5px;
+}
