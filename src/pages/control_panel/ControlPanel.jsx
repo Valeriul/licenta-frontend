@@ -1,25 +1,63 @@
 import React, { useEffect, useState } from "react";
 import { useUser } from "../../contexts/UserContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import DraggableCard from "../../components/DraggableCard/DraggableCard";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import "./ControlPanel.css"; // Ensure styling consistency
+
+function decodeBase64Url(encoded) {
+    try {
+        const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+        const decoded = atob(base64);
+        const match = decoded.match(/^ws:\/\/([\d.]+):5002(\/ws)?$/);
+        return match ? match[1] : null;
+    } catch (error) {
+        console.error("Invalid Base64 encoding:", error);
+        return null;
+    }
+}
 
 function ControlPanel() {
-    const { getUserId } = useUser();
+    const { getUserId, login } = useUser();
     const [userID, setUserID] = useState(null);
     const [peripherals, setPeripherals] = useState([]);
+    const [isUuidLogin, setIsUuidLogin] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    const uuid = searchParams.get("uuid");
+    const decodedIP = uuid ? decodeBase64Url(uuid) : null;
 
     useEffect(() => {
-        const id = getUserId();
-        if (!id) {
-            navigate("/", { replace: true });
+        if (!uuid) {
+            const id = getUserId();
+            if (!id) {
+                navigate("/", { replace: true });
+            } else {
+                setUserID(id);
+            }
         } else {
-            setUserID(id);
+            const authenticateWithUUID = async () => {
+                try {
+                    const response = await fetch(`${process.env.REACT_APP_API_URL}/User/loginWithCentralUUID?uuid=${uuid}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        login(data.id_user);
+                        setUserID(data.id_user);
+                        setIsUuidLogin(true);
+                    } else {
+                        setTimeout(authenticateWithUUID, 3000); // Retry after 3 seconds if authentication fails
+                    }
+                } catch (error) {
+                    console.error("Error during UUID authentication:", error);
+                    setTimeout(authenticateWithUUID, 3000); // Retry after 3 seconds in case of an error
+                }
+            };
+            authenticateWithUUID();
         }
-    }, [getUserId, navigate]);
+    }, [getUserId, navigate, uuid, login]);
 
     useEffect(() => {
         if (!userID) return;
@@ -59,10 +97,29 @@ function ControlPanel() {
         return () => clearInterval(interval);
     }, [userID]);
 
+    if (uuid && !isUuidLogin) {
+        const ipSegments = decodedIP ? decodedIP.split(".") : ["", "", "", ""];
+
+        return (
+            <div className="ip-display-container">
+                <p className="connected-text">Connected to device at:</p>
+                <div className="ip-display">
+                    <span className="ip-segment">{ipSegments[0]}</span>
+                    <span className="dot-separator">.</span>
+                    <span className="ip-segment">{ipSegments[1]}</span>
+                    <span className="dot-separator">.</span>
+                    <span className="ip-segment">{ipSegments[2]}</span>
+                    <span className="dot-separator">.</span>
+                    <span className="ip-segment">{ipSegments[3]}</span>
+                </div>
+            </div>
+        );
+    }
+
     return (
         <DndProvider backend={HTML5Backend}>
             <div style={{ backgroundColor: "var(--warm-beige)", height: "100%" }}>
-                <Navbar />
+                {!isUuidLogin && <Navbar />}
                 <div style={{ display: "flex", width: "100%", justifyContent: "center" }}>
                     <div style={{ backgroundColor: "var(--warm-beige)", padding: "20px", width: "min-content", alignSelf: "center" }}>
                         <div

@@ -5,7 +5,6 @@ import Sign from '../pages/sign/Sign';
 import VerifyUser from '../pages/verify_user/VerifyUser';
 import Page404 from '../pages/404/404';
 import ControlPanel from '../pages/control_panel/ControlPanel';
-import DisplayIP from '../pages/display_ip/DIsplayIP';
 
 function RequiredParamVerifyLogin({ children }) {
   const location = useLocation();
@@ -52,9 +51,6 @@ function AppRoutes() {
       <Route path="/login" element={<Sign />} />
       <Route path="/signin" element={<Navigate to="/login" replace />} />
       <Route path="/control-panel" element={<ControlPanel />} />
-    
-      {/* Verification route */}
-      <Route path="/displayIP" element={<DisplayIP />} />
 
       <Route
         path="/verify-user"
