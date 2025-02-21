@@ -1,198 +1,137 @@
 import React, { useEffect, useState } from "react";
 import { useUser } from "../../contexts/UserContext";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
-
-import TemperatureHumidityCard from "../../components/TemperatureHumidityCard/TemperatureHumidityCard";
-import TemperatureControlCard from "../../components/TemperatureControlCard/TemperatureControlCard";
-import { DndProvider, useDrag, useDrop } from "react-dnd";
+import DraggableCard from "../../components/DraggableCard/DraggableCard";
+import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
+import "./ControlPanel.css"; // Ensure styling consistency
 
-const ItemType = "CARD";
-
-function DraggableCard({ peripheral, moveCard }) {
-    const [, ref] = useDrag({
-        type: ItemType,
-        item: { uuid: peripheral.uuid_Peripheral },
-    });
-
-    const [, drop] = useDrop({
-        accept: ItemType,
-        hover(item) {
-            if (item.uuid !== peripheral.uuid_Peripheral) {
-                moveCard(item.uuid, peripheral.uuid_Peripheral);
-            }
-        },
-    });
-
-    const cardRef = (node) => {
-        ref(node);
-        drop(node);
-    };
-
-    if (peripheral.type === "TemperatureHumiditySensor") {
-        return (
-            <div ref={cardRef} style={{ padding: "10px" }}>
-                <TemperatureHumidityCard
-                    key={peripheral.uuid_Peripheral}
-                    temperature={peripheral.data?.temperature || "N/A"}
-                    humidity={peripheral.data?.humidity || "N/A"}
-                    battery={peripheral.data?.batteryLevel || "N/A"}
-                    uuid={peripheral.uuid_Peripheral}
-                    initialName={peripheral.name}
-                    initialLocation={peripheral.location}
-                />
-            </div>
-        );
-    } else if (peripheral.type === "TemperatureControl") {
-        return (
-            <div ref={cardRef} style={{ padding: "10px" }}>
-                <TemperatureControlCard
-                    key={peripheral.uuid_Peripheral}
-                    initialTemperature={peripheral.data?.temperature || "N/A"}
-                    initialName={peripheral.name}
-                    uuid={peripheral.uuid_Peripheral}
-                    initialLocation={peripheral.location}
-                    battery={peripheral.data?.batteryLevel || "N/A"}
-                />
-            </div>
-        );
-    } else {
+function decodeBase64Url(encoded) {
+    try {
+        const base64 = encoded.replace(/-/g, "+").replace(/_/g, "/");
+        const decoded = atob(base64);
+        const match = decoded.match(/^ws:\/\/([\d.]+):5002(\/ws)?$/);
+        return match ? match[1] : null;
+    } catch (error) {
+        console.error("Invalid Base64 encoding:", error);
         return null;
     }
 }
 
 function ControlPanel() {
-    const { getUserId } = useUser();
+    const { getUserId, login } = useUser();
     const [userID, setUserID] = useState(null);
     const [peripherals, setPeripherals] = useState([]);
+    const [isUuidLogin, setIsUuidLogin] = useState(false);
+    const [isAuthenticating, setIsAuthenticating] = useState(false);
     const navigate = useNavigate();
-
+    const location = useLocation();
+    const searchParams = new URLSearchParams(location.search);
+    const uuid = searchParams.get("uuid");
+    const decodedIP = uuid ? decodeBase64Url(uuid) : null;
 
     useEffect(() => {
-        const id = getUserId();
-        if (!id) {
-
-            navigate("/", { replace: true });
+        if (!uuid) {
+            const id = getUserId();
+            if (!id) {
+                navigate("/", { replace: true });
+            } else {
+                setUserID(id);
+            }
         } else {
-            setUserID(id);
+            setIsAuthenticating(true);
+            const authenticateWithUUID = async () => {
+                try {
+                    const response = await fetch(`${process.env.REACT_APP_API_URL}/User/loginWithCentralUUID?uuid=${uuid}`);
+                    if (response.ok) {
+                        const data = await response.json();
+                        login(data.id_user);
+                        setUserID(data.id_user);
+                        setIsUuidLogin(true);
+                        setIsAuthenticating(false);
+                    } else {
+                        console.error("UUID authentication failed");
+                        setIsAuthenticating(false);
+                    }
+                } catch (error) {
+                    console.error("Error during UUID authentication:", error);
+                    setIsAuthenticating(false);
+                }
+            };
+            authenticateWithUUID();
         }
-    }, [getUserId, navigate]);
+    }, [getUserId, navigate, uuid, login]);
 
-    const fetchInitializedData = async () => {
-        if (userID) {
+    useEffect(() => {
+        if (!userID) return;
+
+        const fetchInitializedData = async () => {
             try {
-                const response = await fetch(
-                    process.env.REACT_APP_API_URL + `/Peripheral/initializePeripheral?id_user=${userID}`
-                );
+                await fetch(`${process.env.REACT_APP_API_URL}/Peripheral/initializePeripheral?id_user=${userID}`);
             } catch (error) {
                 console.error("Error fetching initialized data:", error);
             }
-        }
-    };
-
-    useEffect(() => {
-        const fetchInitializedData = async () => {
-            if (userID) {
-                try {
-                    const response = await fetch(
-                        `${process.env.REACT_APP_API_URL}/Peripheral/initializePeripheral?id_user=${userID}`
-                    );
-                } catch (error) {
-                    console.error("Error fetching initialized data:", error);
-                }
-            }
         };
 
-        // Call the fetch function only once after userID is set
         fetchInitializedData();
     }, [userID]);
 
     const fetchLoadingData = async () => {
-        if (userID) {
-            try {
-                const response = await fetch(
-                    process.env.REACT_APP_API_URL + `/Peripheral/getLoadingData?id_user=${userID}`
-                );
-                if (response.ok) {
-                    const data = await response.json();
-                    setPeripherals(data);
-                } else {
-                    console.error("Failed to fetch loading data:", response.statusText);
-                }
-            } catch (error) {
-                console.error("Error fetching loading data:", error);
+        if (!userID) return;
+
+        try {
+            const response = await fetch(
+                `${process.env.REACT_APP_API_URL}/Peripheral/getLoadingData?id_user=${userID}`
+            );
+            if (response.ok) {
+                const data = await response.json();
+                setPeripherals(data);
+            } else {
+                console.error("Failed to fetch loading data:", response.statusText);
             }
+        } catch (error) {
+            console.error("Error fetching loading data:", error);
         }
     };
-
 
     useEffect(() => {
         fetchLoadingData();
         const interval = setInterval(fetchLoadingData, 5000);
-
         return () => clearInterval(interval);
     }, [userID]);
 
-
-    const moveCard = (fromUuid, toUuid) => {
-        const fromIndex = peripherals.findIndex(
-            (p) => p.uuid_Peripheral === fromUuid
+    if (isAuthenticating) {
+        return (
+            <div className="ip-display-container">
+                <p className="connecting-text">Connecting to device...</p>
+            </div>
         );
-        const toIndex = peripherals.findIndex((p) => p.uuid_Peripheral === toUuid);
+    }
 
-        if (fromIndex !== -1 && toIndex !== -1) {
-            const updatedPeripherals = [...peripherals];
-            const [movedItem] = updatedPeripherals.splice(fromIndex, 1);
-            updatedPeripherals.splice(toIndex, 0, movedItem);
+    if (uuid && !isUuidLogin) {
+        const ipSegments = decodedIP ? decodedIP.split(".") : ["", "", "", ""];
 
-
-            const peripheralsWithUpdatedPositions = updatedPeripherals.map(
-                (peripheral, index) => ({
-                    ...peripheral,
-                    grid_position: index + 1,
-                })
-            );
-
-
-            setPeripherals(peripheralsWithUpdatedPositions);
-
-
-            saveGridPosition(peripheralsWithUpdatedPositions);
-        }
-    };
-
-
-    const saveGridPosition = async (updatedPeripherals) => {
-        try {
-            console.log(JSON.stringify({
-                id_user: userID,
-                peripherals: updatedPeripherals.map((p, index) => ({
-                    uuid: p.uuid_Peripheral,
-                    grid_position: index + 1,
-                })),
-            }));
-
-            await fetch(process.env.REACT_APP_API_URL + `/Peripheral/saveGridPosition`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({
-                    id_user: userID,
-                    peripherals: updatedPeripherals.map((p, index) => ({
-                        uuid: p.uuid_Peripheral,
-                        grid_position: index + 1,
-                    })),
-                }),
-            });
-        } catch (error) {
-            console.error("Error saving grid positions:", error);
-        }
-    };
+        return (
+            <div className="ip-display-container">
+                <p className="connected-text">Connected to device at:</p>
+                <div className="ip-display">
+                    <span className="ip-segment">{ipSegments[0]}</span>
+                    <span className="dot-separator">.</span>
+                    <span className="ip-segment">{ipSegments[1]}</span>
+                    <span className="dot-separator">.</span>
+                    <span className="ip-segment">{ipSegments[2]}</span>
+                    <span className="dot-separator">.</span>
+                    <span className="ip-segment">{ipSegments[3]}</span>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <DndProvider backend={HTML5Backend}>
             <div style={{ backgroundColor: "var(--warm-beige)", height: "100%" }}>
-                <Navbar />
+                {!isUuidLogin && <Navbar />}
                 <div style={{ display: "flex", width: "100%", justifyContent: "center" }}>
                     <div style={{ backgroundColor: "var(--warm-beige)", padding: "20px", width: "min-content", alignSelf: "center" }}>
                         <div
@@ -205,14 +144,11 @@ function ControlPanel() {
                                 marginLeft: "20px",
                             }}
                         >
-
-                            {peripherals.sort((a, b) => a.grid_position - b.grid_position).map((peripheral) => (
-                                <DraggableCard
-                                    key={peripheral.uuid_Peripheral}
-                                    peripheral={peripheral}
-                                    moveCard={moveCard}
-                                />
-                            ))}
+                            {peripherals
+                                .sort((a, b) => a.grid_position - b.grid_position)
+                                .map((peripheral) => (
+                                    <DraggableCard key={peripheral.uuid_Peripheral} peripheral={peripheral} />
+                                ))}
                         </div>
                     </div>
                 </div>

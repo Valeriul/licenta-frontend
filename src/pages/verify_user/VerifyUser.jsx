@@ -1,8 +1,7 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import 'uikit/dist/css/uikit.min.css';
 import '../../styles.css';
 import './VerifyUser.css';
-import { InputOtp } from 'primereact/inputotp';
 import { Button } from 'primereact/button';
 import { Toast } from 'primereact/toast';
 import { useUser } from '../../contexts/UserContext';
@@ -13,47 +12,56 @@ function VerifyLogin({ salt }) {
     const [segment3, setSegment3] = useState('');
     const [segment4, setSegment4] = useState('');
     const [isButtonDisabled, setIsButtonDisabled] = useState(false);
+    const [isValidIp, setIsValidIp] = useState(true);
     const toast = useRef(null);
     const { login } = useUser();
 
-
-    const handleConfirm = () => {
+    const validateIp = () => {
         const ipAddress = `${segment1}.${segment2}.${segment3}.${segment4}`;
-        if (segment1 && segment2 && segment3 && segment4) {
-            setIsButtonDisabled(true);
-            fetch(process.env.REACT_APP_API_URL +'/User/verifyUser', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ "salt": salt, "centralUrl": ipAddress })
-            })
-                .then(response => {
-                    toast.current.show({ severity: 'success', summary: 'Success', detail: 'IP Verified Successfully.Redirecting to the control panel', life: 3000 });
+        const ipv4Pattern = /^(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])\.(25[0-5]|2[0-4][0-9]|1[0-9]{2}|[1-9]?[0-9])$/;
 
-                    fetch(process.env.REACT_APP_API_URL +'/User/loginWithSalt', {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ "salt": salt })
-                    }).then(response => response.json())
-                        .then(data => {
-                            const id_user = data;
-                            login({ id_user });
-
-                            window.location.href = '/control-panel';
-                        })
-                        .catch(error => {
-                            toast.current.show({ severity: 'error', summary: 'Error', detail: 'Failed to redirect', life: 3000 });
-                        });
-                })
-                .catch(error => {
-                    toast.current.show({ severity: 'error', summary: 'Error', detail: 'Failed to verify IP', life: 3000 });
-                    setIsButtonDisabled(false);
-                });
+        if (ipv4Pattern.test(ipAddress)) {
+            setIsValidIp(true);
+            return ipAddress;
         } else {
-            toast.current.show({ severity: 'warn', summary: 'Incomplete', detail: 'Please fill in all of the ip', life: 3000 });
+            setIsValidIp(false);
+            return null;
         }
     };
 
-    const customInput = ({ events, props }) => <input {...events} {...props} type="text" className="custom-otp-input" />;
+    const handleConfirm = () => {
+        const ipAddress = validateIp();
+
+        if (!ipAddress) {
+            toast.current.show({ severity: 'warn', summary: 'Invalid IP', detail: 'Enter a valid IPv4 address.', life: 3000 });
+            return;
+        }
+
+        setIsButtonDisabled(true);
+        fetch(process.env.REACT_APP_API_URL + '/User/verifyUser', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ "salt": salt, "centralUrl": ipAddress })
+        })
+            .then(response => {
+                toast.current.show({ severity: 'success', summary: 'Success', detail: 'IP Verified Successfully. Redirecting...', life: 3000 });
+
+                return fetch(process.env.REACT_APP_API_URL + '/User/loginWithSalt', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ "salt": salt })
+                });
+            })
+            .then(response => response.json())
+            .then(data => {
+                login({ id_user: data });
+                window.location.href = '/control-panel';
+            })
+            .catch(error => {
+                toast.current.show({ severity: 'error', summary: 'Error', detail: 'Failed to verify IP', life: 3000 });
+                setIsButtonDisabled(false);
+            });
+    };
 
     return (
         <div className="blurred-background uk-flex uk-flex-center uk-flex-middle uk-height-viewport">
@@ -62,21 +70,45 @@ function VerifyLogin({ salt }) {
                 <div style={{ backgroundColor: 'var(--warm-beige)' }}>
                     <h2 className="uk-text-bold" style={{ color: 'var(--deep-brown)', textAlign: 'center' }}>Verify your account</h2>
                     <p style={{ color: 'var(--deep-brown)', textAlign: 'center' }}>
-                        To verify you account please enter the IP address that is displayed on the central controller screen
+                        To verify your account, please enter the IP address displayed on the central controller screen.
                     </p>
 
-                    {}
-                    <div className="uk-flex uk-flex-center uk-margin">
-                        <InputOtp value={segment1} length={3} onChange={(e) => setSegment1(e.value)} inputTemplate={customInput} />
-                        <span className="uk-margin-small-left uk-margin-small-right dot-separator">.</span>
-                        <InputOtp value={segment2} length={3} onChange={(e) => setSegment2(e.value)} inputTemplate={customInput} />
-                        <span className="uk-margin-small-left uk-margin-small-right dot-separator">.</span>
-                        <InputOtp value={segment3} length={1} onChange={(e) => setSegment3(e.value)} inputTemplate={customInput} />
-                        <span className="uk-margin-small-left uk-margin-small-right dot-separator">.</span>
-                        <InputOtp value={segment4} length={2} onChange={(e) => setSegment4(e.value)} inputTemplate={customInput} />
+                    {/* IP Input Fields */}
+                    <div className="ip-input-container uk-flex uk-flex-center uk-margin">
+                        <input
+                            type="text"
+                            className={`ip-segment ${!isValidIp ? 'input-error' : ''}`}
+                            maxLength="3"
+                            value={segment1}
+                            onChange={(e) => setSegment1(e.target.value.replace(/\D/g, ''))}
+                        />
+                        <span className="dot-separator">.</span>
+                        <input
+                            type="text"
+                            className={`ip-segment ${!isValidIp ? 'input-error' : ''}`}
+                            maxLength="3"
+                            value={segment2}
+                            onChange={(e) => setSegment2(e.target.value.replace(/\D/g, ''))}
+                        />
+                        <span className="dot-separator">.</span>
+                        <input
+                            type="text"
+                            className={`ip-segment ${!isValidIp ? 'input-error' : ''}`}
+                            maxLength="3"
+                            value={segment3}
+                            onChange={(e) => setSegment3(e.target.value.replace(/\D/g, ''))}
+                        />
+                        <span className="dot-separator">.</span>
+                        <input
+                            type="text"
+                            className={`ip-segment ${!isValidIp ? 'input-error' : ''}`}
+                            maxLength="3"
+                            value={segment4}
+                            onChange={(e) => setSegment4(e.target.value.replace(/\D/g, ''))}
+                        />
                     </div>
 
-                    {}
+                    {/* Confirm Button */}
                     <Button
                         label="Confirm"
                         className="button-submit uk-width-1-1 uk-margin-small-bottom"

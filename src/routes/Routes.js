@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate, useLocation } from 'react-router-dom';
 import Home from '../pages/home/Home';
 import Sign from '../pages/sign/Sign';
@@ -8,30 +8,35 @@ import ControlPanel from '../pages/control_panel/ControlPanel';
 
 function RequiredParamVerifyLogin({ children }) {
   const location = useLocation();
-  const [isVerified, setIsVerified] = useState(false);
+  const [isVerified, setIsVerified] = useState(null);
   const searchParams = new URLSearchParams(location.search);
   const paramS = searchParams.get('s');
 
-  
-  if (!paramS) {
-    return <Navigate to="/404" replace />;
-  }
-
-  fetch(process.env.REACT_APP_API_URL +`/User/isVerified?salt=${paramS}`, {
-    method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
+  useEffect(() => {
+    if (!paramS) {
+      setIsVerified(false);
+      return;
     }
-  }).then((response) => response.json())
-    .then((data) => {
-      setIsVerified(data);
-    });
 
-  if (!isVerified) {
-    return React.cloneElement(children, { salt: paramS });
-  } else {
+    fetch(process.env.REACT_APP_API_URL + `/User/isVerified?salt=${paramS}`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      }
+    })
+      .then((response) => response.json())
+      .then((data) => {
+        setIsVerified(data);
+      })
+      .catch(() => setIsVerified(false));
+  }, [paramS]);
+
+
+  if (!paramS || isVerified) {
     return <Navigate to="/404" replace />;
   }
+
+  return React.cloneElement(children, { salt: paramS });
 }
 
 function AppRoutes() {
@@ -45,6 +50,8 @@ function AppRoutes() {
       <Route path="/signup" element={<Navigate to="/register" replace />} />
       <Route path="/login" element={<Sign />} />
       <Route path="/signin" element={<Navigate to="/login" replace />} />
+
+      {/* Control Panel should be accessible at all times */}
       <Route path="/control-panel" element={<ControlPanel />} />
 
       {/* Protected route with mandatory query parameter 's' */}
@@ -59,6 +66,7 @@ function AppRoutes() {
 
       {/* 404 route for non-existing pages */}
       <Route path="/404" element={<Page404 />} />
+      <Route path="*" element={<Navigate to="/404" replace />} />
     </Routes>
   );
 }
