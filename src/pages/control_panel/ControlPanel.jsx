@@ -31,33 +31,47 @@ function ControlPanel() {
     const decodedIP = uuid ? decodeBase64Url(uuid) : null;
 
     useEffect(() => {
+        let cancelled = false;
+      
         if (!uuid) {
-            const id = getUserId();
-            if (!id) {
-                navigate("/", { replace: true });
-            } else {
-                setUserID(id);
+          const id = getUserId();
+          if (!id) {
+            navigate("/", { replace: true });
+          } else {
+            setUserID(id);
+          }
+        } else if (!isUuidLogin) { // only run authentication if not already logged in via UUID
+          const authenticateWithUUID = async () => {
+            try {
+              const response = await fetch(
+                `${process.env.REACT_APP_API_URL}/User/loginWithCentralUUID?uuid=${uuid}`
+              );
+              if (response.ok && !cancelled) {
+                const data = await response.json();
+                login(data);
+                setUserID(data.id_user);
+                setIsUuidLogin(true); // mark as authenticated so we stop retrying
+              } else if (!cancelled && !isUuidLogin) {
+                // If authentication fails, schedule a retry only if not already authenticated
+                setTimeout(authenticateWithUUID, 3000);
+              }
+            } catch (error) {
+              console.error("Error during UUID authentication:", error);
+              if (!cancelled && !isUuidLogin) {
+                // Retry in case of an error
+                setTimeout(authenticateWithUUID, 3000);
+              }
             }
-        } else {
-            const authenticateWithUUID = async () => {
-                try {
-                    const response = await fetch(`${process.env.REACT_APP_API_URL}/User/loginWithCentralUUID?uuid=${uuid}`);
-                    if (response.ok) {
-                        const data = await response.json();
-                        login(data.id_user);
-                        setUserID(data.id_user);
-                        setIsUuidLogin(true);
-                    } else {
-                        setTimeout(authenticateWithUUID, 3000); // Retry after 3 seconds if authentication fails
-                    }
-                } catch (error) {
-                    console.error("Error during UUID authentication:", error);
-                    setTimeout(authenticateWithUUID, 3000); // Retry after 3 seconds in case of an error
-                }
-            };
-            authenticateWithUUID();
+          };
+      
+          authenticateWithUUID();
         }
-    }, [getUserId, navigate, uuid, login]);
+      
+        return () => {
+          cancelled = true;
+        };
+      }, [uuid, isUuidLogin, getUserId, navigate, login]);
+      
 
     useEffect(() => {
         if (!userID) return;
