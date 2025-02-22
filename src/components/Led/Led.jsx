@@ -14,6 +14,10 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid })
     const bufferRef = useRef([]);
     const timeoutRef = useRef(null);
 
+    useEffect(() => {
+        setBrightness(initialBrightness);
+      }, [initialBrightness]);
+
     const sendBrightnessRequest = (value) => {
         fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
             method: 'POST',
