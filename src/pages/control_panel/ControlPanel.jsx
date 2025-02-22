@@ -32,46 +32,46 @@ function ControlPanel() {
 
     useEffect(() => {
         let cancelled = false;
-      
+
         if (!uuid) {
-          const id = getUserId();
-          if (!id) {
-            navigate("/", { replace: true });
-          } else {
-            setUserID(id);
-          }
-        } else if (!isUuidLogin) { // only run authentication if not already logged in via UUID
-          const authenticateWithUUID = async () => {
-            try {
-              const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/User/loginWithCentralUUID?uuid=${uuid}`
-              );
-              if (response.ok && !cancelled) {
-                const data = await response.json();
-                login(data);
-                setUserID(data.id_user);
-                setIsUuidLogin(true); // mark as authenticated so we stop retrying
-              } else if (!cancelled && !isUuidLogin) {
-                // If authentication fails, schedule a retry only if not already authenticated
-                setTimeout(authenticateWithUUID, 3000);
-              }
-            } catch (error) {
-              console.error("Error during UUID authentication:", error);
-              if (!cancelled && !isUuidLogin) {
-                // Retry in case of an error
-                setTimeout(authenticateWithUUID, 3000);
-              }
+            const id = getUserId();
+            if (!id) {
+                navigate("/", { replace: true });
+            } else {
+                setUserID(id);
             }
-          };
-      
-          authenticateWithUUID();
+        } else if (!isUuidLogin) { // only run authentication if not already logged in via UUID
+            const authenticateWithUUID = async () => {
+                try {
+                    const response = await fetch(
+                        `${process.env.REACT_APP_API_URL}/User/loginWithCentralUUID?uuid=${uuid}`
+                    );
+                    if (response.ok && !cancelled) {
+                        const data = await response.json();
+                        login(data);
+                        setUserID(data.id_user);
+                        setIsUuidLogin(true); // mark as authenticated so we stop retrying
+                    } else if (!cancelled && !isUuidLogin) {
+                        // If authentication fails, schedule a retry only if not already authenticated
+                        setTimeout(authenticateWithUUID, 3000);
+                    }
+                } catch (error) {
+                    console.error("Error during UUID authentication:", error);
+                    if (!cancelled && !isUuidLogin) {
+                        // Retry in case of an error
+                        setTimeout(authenticateWithUUID, 3000);
+                    }
+                }
+            };
+
+            authenticateWithUUID();
         }
-      
+
         return () => {
-          cancelled = true;
+            cancelled = true;
         };
-      }, [uuid, isUuidLogin, getUserId, navigate, login]);
-      
+    }, [uuid, isUuidLogin, getUserId, navigate, login]);
+
 
     useEffect(() => {
         if (!userID) return;
@@ -87,28 +87,41 @@ function ControlPanel() {
         fetchInitializedData();
     }, [userID]);
 
-    const fetchLoadingData = async () => {
-        if (!userID) return;
-
-        try {
-            const response = await fetch(
-                `${process.env.REACT_APP_API_URL}/Peripheral/getLoadingData?id_user=${userID}`
-            );
-            if (response.ok) {
-                const data = await response.json();
-                setPeripherals(data);
-            } else {
-                console.error("Failed to fetch loading data:", response.statusText);
-            }
-        } catch (error) {
-            console.error("Error fetching loading data:", error);
-        }
-    };
-
     useEffect(() => {
+        let isMounted = true; // to prevent state updates if the component unmounts
+
+        const fetchLoadingData = async () => {
+            if (!userID || !isMounted) return;
+
+            try {
+                const response = await fetch(
+                    `${process.env.REACT_APP_API_URL}/Peripheral/getLoadingData?id_user=${userID}`
+                );
+                if (response.ok) {
+                    const data = await response.json();
+                    if (isMounted) {
+                        setPeripherals(data);
+                    }
+                } else {
+                    console.error("Failed to fetch loading data:", response.statusText);
+                }
+            } catch (error) {
+                console.error("Error fetching loading data:", error);
+            }
+
+            // Schedule the next fetch 3 seconds after the current one completes
+            if (isMounted) {
+                setTimeout(fetchLoadingData, 3000);
+            }
+        };
+
+        // Start the polling
         fetchLoadingData();
-        const interval = setInterval(fetchLoadingData, 5000);
-        return () => clearInterval(interval);
+
+        // Cleanup function to prevent setting state on an unmounted component
+        return () => {
+            isMounted = false;
+        };
     }, [userID]);
 
     if (uuid && !isUuidLogin) {
@@ -146,11 +159,16 @@ function ControlPanel() {
                                 marginLeft: "20px",
                             }}
                         >
-                            {peripherals
-                                .sort((a, b) => a.grid_position - b.grid_position)
-                                .map((peripheral) => (
-                                    <DraggableCard key={peripheral.uuid_Peripheral} peripheral={peripheral} />
-                                ))}
+                            {peripherals.length === 0 ? (
+                                null
+                            ) : (
+                                console.log(peripherals),
+                                peripherals
+                                    .sort((a, b) => a.grid_position - b.grid_position)
+                                    .map((peripheral) => (
+                                        <DraggableCard key={peripheral.uuid_Peripheral} peripheral={peripheral} />
+                                    ))
+                            )}
                         </div>
                     </div>
                 </div>
