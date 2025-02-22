@@ -6,6 +6,9 @@ import Led from "../Led/Led";
 function CardFactory(peripheral) {
 
     var peripheral_data = JSON.parse(peripheral.data);
+    if (peripheral_data === null) {
+        return null;
+    }
 
     switch (peripheral.type) {
         case "TemperatureHumiditySensor":
@@ -33,7 +36,7 @@ function CardFactory(peripheral) {
                 />
             );
         case  "LedControl":
-            console.log(peripheral);
+           
             return (
                 <Led
                     key={peripheral.uuid_Peripheral}
