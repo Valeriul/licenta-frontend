@@ -8,6 +8,10 @@ import CardHeader from "../CardHeader/CardHeader";
 
 function Led({ initialBrightness, initialName, initialLocation, battery, uuid }) {
     const [brightness, setBrightness] = useState(initialBrightness);
+    const [name, setName] = useState(initialName);
+    const [location, setLocation] = useState(initialLocation);
+    const [batteryLevel, setBatteryLevel] = useState(battery);
+
     const { getUserId } = useUser();
     const userID = getUserId();
     
@@ -16,7 +20,11 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid })
 
     useEffect(() => {
         setBrightness(initialBrightness);
-      }, [initialBrightness]);
+        setName(initialName);
+        setLocation(initialLocation);
+        setBatteryLevel(battery);
+    }, [initialBrightness, initialName, initialLocation, battery]);
+    
 
     const sendBrightnessRequest = (value) => {
         fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
@@ -51,7 +59,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid })
                 sendBrightnessRequest(lastValue);
                 bufferRef.current = []; // Clear buffer
             }
-        }, 500); // Adjust debounce delay as needed
+        }, 500);
     };
 
     const handleIncrementBrightness = () => {
@@ -81,7 +89,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid })
                 justifyContent: "space-between",
             }}
         >
-            <CardHeader initialName={initialName} initialLocation={initialLocation} battery={battery} uuid={uuid} />
+            <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} />
             <hr style={{ borderColor: "var(--deep-brown)", margin: "10px 0" }} />
 
             {/* Knob and Brightness Control Buttons */}
