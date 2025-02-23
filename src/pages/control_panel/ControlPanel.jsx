@@ -129,7 +129,7 @@ function ControlPanel() {
 
         return (
             <div className="ip-display-container">
-                <p className="connected-text">Connected to device at:</p>
+                <p className="connected-text">Input this IP into the verification page</p>
                 <div className="ip-display">
                     <span className="ip-segment">{ipSegments[0]}</span>
                     <span className="dot-separator">.</span>
