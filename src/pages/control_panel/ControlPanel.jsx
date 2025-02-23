@@ -84,7 +84,7 @@ function ControlPanel() {
             }
         };
 
-        fetchInitializedData();
+        //fetchInitializedData();
     }, [userID]);
 
     useEffect(() => {
