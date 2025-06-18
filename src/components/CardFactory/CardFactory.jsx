@@ -1,7 +1,6 @@
 import React from "react";
-import TemperatureHumidityCard from "../TemperatureHumidityCard/TemperatureHumidityCard";
-import TemperatureControlCard from "../TemperatureControlCard/TemperatureControlCard";
 import Led from "../Led/Led";
+import GasSensor from "../GasSensor/GasSensor";
 
 function CardFactory(peripheral) {
 
@@ -10,30 +9,6 @@ function CardFactory(peripheral) {
         return null;
 
     switch (peripheral.type) {
-        case "TemperatureHumiditySensor":
-            return (
-                <TemperatureHumidityCard
-                    key={peripheral.uuid_Peripheral}
-                    temperature={peripheral.data?.temperature || "N/A"}
-                    humidity={peripheral.data?.humidity || "N/A"}
-                    battery={peripheral.data?.batteryLevel || "N/A"}
-                    uuid={peripheral.uuid_Peripheral}
-                    initialName={peripheral.name}
-                    initialLocation={peripheral.location}
-                />
-            );
-
-        case "TemperatureControl":
-            return (
-                <TemperatureControlCard
-                    key={peripheral.uuid_Peripheral}
-                    initialTemperature={peripheral.data?.temperature || "N/A"}
-                    initialName={peripheral.name}
-                    uuid={peripheral.uuid_Peripheral}
-                    initialLocation={peripheral.location}
-                    battery={peripheral.data?.batteryLevel || "N/A"}
-                />
-            );
         case  "LedControl":
            
             return (
@@ -46,7 +21,39 @@ function CardFactory(peripheral) {
                     initialBrightness={peripheral_data.brightness || 0}
                 />
             )
-
+        case "GasSensor":
+            return (
+                <GasSensor
+                    key={peripheral.uuid_Peripheral}
+                    initialName={peripheral.name}
+                    uuid={peripheral.uuid_Peripheral}
+                    initialLocation={peripheral.location}
+                    battery={peripheral_data.batteryLevel || 0}
+                    initialGasValue={peripheral_data.gasValue || 0}
+                />
+            );
+        case "TemperatureSensor":
+            return (
+                <TemperatureSensor
+                    key={peripheral.uuid_Peripheral}
+                    initialName={peripheral.name}
+                    uuid={peripheral.uuid_Peripheral}
+                    initialLocation={peripheral.location}
+                    battery={peripheral_data.batteryLevel || 0}
+                    initialTemperature={peripheral_data.temperature || 0}
+                />
+            );
+        case "Relay":
+            return (
+                <Relay
+                    key={peripheral.uuid_Peripheral}
+                    initialName={peripheral.name}
+                    uuid={peripheral.uuid_Peripheral}
+                    initialLocation={peripheral.location}
+                    battery={peripheral_data.batteryLevel || 0}
+                    initialState={peripheral_data.state || false}
+                />
+            );
         default:
             return null;
     }

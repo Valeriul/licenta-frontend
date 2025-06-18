@@ -165,9 +165,11 @@ function ControlPanel() {
                                 console.log(peripherals),
                                 peripherals
                                     .sort((a, b) => a.grid_position - b.grid_position)
-                                    .map((peripheral) => (
-                                        <DraggableCard key={peripheral.uuid_Peripheral} peripheral={peripheral} />
-                                    ))
+                                    .map((peripheral) =>
+                                        peripheral.data != null && (
+                                            <DraggableCard key={peripheral.uuid_Peripheral} peripheral={peripheral} />
+                                        )
+                                    )
                             )}
                         </div>
                     </div>
