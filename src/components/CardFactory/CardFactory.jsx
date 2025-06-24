@@ -1,6 +1,8 @@
 import React from "react";
 import Led from "../Led/Led";
 import GasSensor from "../GasSensor/GasSensor";
+import TemperatureSensor from "../TemperatureSensor/TemperatureSensor";
+import Relay from "../Relay/Relay";
 
 function CardFactory(peripheral) {
 
@@ -40,7 +42,7 @@ function CardFactory(peripheral) {
                     uuid={peripheral.uuid_Peripheral}
                     initialLocation={peripheral.location}
                     battery={peripheral_data.batteryLevel || 0}
-                    initialTemperature={peripheral_data.temperature || 0}
+                    initialTemperature={peripheral_data.temperatureC || 0}
                 />
             );
         case "Relay":
@@ -51,7 +53,7 @@ function CardFactory(peripheral) {
                     uuid={peripheral.uuid_Peripheral}
                     initialLocation={peripheral.location}
                     battery={peripheral_data.batteryLevel || 0}
-                    initialState={peripheral_data.state || false}
+                    initialState={peripheral_data.isOn || false}
                 />
             );
         default:

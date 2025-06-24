@@ -1,10 +1,112 @@
 import React, { useState, useRef, useEffect } from 'react';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
-import { Knob } from 'primereact/knob';
 import { Button } from 'primereact/button';
 import { useUser } from '../../contexts/UserContext';
 import CardHeader from "../CardHeader/CardHeader";
+
+// Alert Light Component
+const AlertLight = ({ isOn, size = 100 }) => {
+  const lightColor = isOn ? '#dc4444' : '#8b5152';
+  
+  return (
+    <div className="flex items-center justify-center">
+      <div className="relative" style={{ width: size, height: size }}>
+        <svg
+          width={size}
+          height={size}
+          viewBox="0 0 300 300"
+          className="drop-shadow-lg"
+        >
+          {/* Bottom base - darkest */}
+          <rect
+            x="75"
+            y="260"
+            width="150"
+            height="25"
+            fill="#666"
+            rx="4"
+          />
+          
+          {/* Middle base - medium gray */}
+          <rect
+            x="90"
+            y="240"
+            width="120"
+            height="30"
+            fill="#888"
+            rx="6"
+          />
+          
+          {/* Main Alert Body - dome shape */}
+          <path
+            d="M 105 240 L 105 140 Q 105 90 150 90 Q 195 90 195 140 L 195 240 Z"
+            fill={lightColor}
+          />
+          
+          {/* Inner highlight circle */}
+          <circle
+            cx="150"
+            cy="150"
+            r="25"
+            fill="rgba(255,255,255,0.4)"
+          />
+          
+          {/* Center post/stem */}
+          <rect
+            x="147"
+            y="150"
+            width="6"
+            height="50"
+            fill="rgba(255,255,255,0.3)"
+            rx="3"
+          />
+          
+          {/* Glowing effect - only when light is on */}
+          {isOn && (
+            <>
+              {/* Outer glow */}
+              <circle
+                cx="150"
+                cy="150"
+                r="60"
+                fill="none"
+                stroke={lightColor}
+                strokeWidth="8"
+                opacity="0.3"
+                filter="blur(8px)"
+              />
+              
+              {/* Medium glow */}
+              <circle
+                cx="150"
+                cy="150"
+                r="45"
+                fill="none"
+                stroke={lightColor}
+                strokeWidth="6"
+                opacity="0.4"
+                filter="blur(4px)"
+              />
+              
+              {/* Inner glow */}
+              <circle
+                cx="150"
+                cy="150"
+                r="35"
+                fill="none"
+                stroke={lightColor}
+                strokeWidth="4"
+                opacity="0.5"
+                filter="blur(2px)"
+              />
+            </>
+          )}
+        </svg>
+      </div>
+    </div>
+  );
+};
 
 function GasSensor({ initialGasValue, initialName, initialLocation, battery, uuid }) {
     const [gasValue, setGasValue] = useState(initialGasValue);
@@ -15,6 +117,8 @@ function GasSensor({ initialGasValue, initialName, initialLocation, battery, uui
     const { getUserId } = useUser();
     const userID = getUserId();
     
+    // Determine if alert should be on based on gas value
+    const isAlertOn = gasValue > 250;
 
     useEffect(() => {
         setGasValue(initialGasValue);
@@ -43,16 +147,26 @@ function GasSensor({ initialGasValue, initialName, initialLocation, battery, uui
             <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} />
             <hr style={{ borderColor: "var(--deep-brown)", margin: "10px 0" }} />
 
-            <Knob
-                value={gasValue}
-                size={100}
-                min={0}
-                max={500}
-                valueColor="var(--soft-green)"
-                rangeColor="var(--muted-olive)"
-                className="uk-flex uk-flex-center"
-                style={{ margin: '0 auto' }}
-            />
+            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+                <AlertLight isOn={isAlertOn} size={100} />
+                <div style={{ 
+                    fontSize: '18px', 
+                    fontWeight: 'bold',
+                    color: isAlertOn ? '#dc4444' : 'var(--deep-brown)'
+                }}>
+                    Gas Level: {gasValue} ppm
+                </div>
+                {isAlertOn && (
+                    <div style={{ 
+                        fontSize: '14px', 
+                        color: '#dc4444',
+                        fontWeight: 'bold',
+                        textAlign: 'center'
+                    }}>
+                        ⚠️ ALERT: Gas level exceeds safe threshold!
+                    </div>
+                )}
+            </div>
         </div>
     );
 }

@@ -3,9 +3,9 @@ import '../../styles.css';
 import temperatureIcon from '../../assets/img/temperature.png';
 
 function TemperatureIcon({ temperature }) {
-    
+
     const getClipPathValue = (temp) => {
-        const height = Math.min(100, Math.max(20, temp * 2)); 
+        const height = Math.min(100, Math.max(20, temp * 2));
         return `${100 - height}px`;
     };
 
@@ -22,7 +22,7 @@ function TemperatureIcon({ temperature }) {
                 margin: "0px",
             }}
         >
-            {}
+            { }
             <div
                 style={{
                     background: "linear-gradient(to top, rgb(25, 12, 199), rgb(255, 209, 161), rgb(255, 0, 0))",
@@ -52,24 +52,6 @@ function TemperatureIcon({ temperature }) {
                 }}
             ></div>
 
-
-            {}
-            <span
-                style={{
-                    fontSize: "1.5rem",
-                    fontWeight: "bold",
-                    color: "var(--deep-brown)",
-                    position: "absolute",
-                    bottom: "5px",
-                    left: "-18px",
-                    textAlign: "right",
-                    zIndex: 4,
-                }}
-            >
-                {temperature}°C
-            </span>
-
-            {}
             <img
                 src={temperatureIcon}
                 alt="Temperature Icon"
@@ -82,6 +64,22 @@ function TemperatureIcon({ temperature }) {
                     padding: "0px",
                 }}
             />
+
+            <span
+                style={{
+                    fontSize: "1.5rem",
+                    fontWeight: "bold",
+                    color: "var(--deep-brown)",
+                    position: "absolute",
+                    bottom: "5px",
+                    left: "-30px",
+                    textAlign: "right",
+                    width: "80px",
+                    zIndex: 4,
+                }}
+            >
+                {temperature}°C
+            </span>
         </div>
     );
 }

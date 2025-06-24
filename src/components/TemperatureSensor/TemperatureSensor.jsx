@@ -5,6 +5,7 @@ import { Knob } from 'primereact/knob';
 import { Button } from 'primereact/button';
 import { useUser } from '../../contexts/UserContext';
 import CardHeader from "../CardHeader/CardHeader";
+import TemperatureIcon from '../TemperatureIcon/TemperatureIcon';
 
 function TemperatureSensor({ initialTemperature, initialName, initialLocation, battery, uuid }) {
     const [temperature, setTemperature] = useState(initialTemperature);
@@ -14,7 +15,7 @@ function TemperatureSensor({ initialTemperature, initialName, initialLocation, b
 
     const { getUserId } = useUser();
     const userID = getUserId();
-    
+
 
     useEffect(() => {
         setTemperature(initialTemperature);
@@ -43,18 +44,11 @@ function TemperatureSensor({ initialTemperature, initialName, initialLocation, b
             <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} />
             <hr style={{ borderColor: "var(--deep-brown)", margin: "10px 0" }} />
 
-            <Knob
-                value={temperature}
-                size={100}
-                min={0}
-                max={500}
-                valueColor="var(--soft-green)"
-                rangeColor="var(--muted-olive)"
-                className="uk-flex uk-flex-center"
-                style={{ margin: '0 auto' }}
-            />
+            <div className="uk-flex uk-flex-center uk-flex-middle" style={{ position: 'relative' }}>
+                <TemperatureIcon temperature={temperature} />
+            </div>
         </div>
     );
 }
 
-export default GasSensor;
+export default TemperatureSensor;
