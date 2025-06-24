@@ -41,7 +41,7 @@ function TemperatureSensor({ initialTemperature, initialName, initialLocation, b
                 justifyContent: "space-between",
             }}
         >
-            <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} />
+            <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} deviceType='TemperatureSensor'/>
             <hr style={{ borderColor: "var(--deep-brown)", margin: "10px 0" }} />
 
             <div className="uk-flex uk-flex-center uk-flex-middle" style={{ position: 'relative' }}>

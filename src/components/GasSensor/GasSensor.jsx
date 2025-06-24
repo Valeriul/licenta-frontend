@@ -8,7 +8,7 @@ import CardHeader from "../CardHeader/CardHeader";
 // Alert Light Component
 const AlertLight = ({ isOn, size = 100 }) => {
   const lightColor = isOn ? '#dc4444' : '#8b5152';
-  
+
   return (
     <div className="flex items-center justify-center">
       <div className="relative" style={{ width: size, height: size }}>
@@ -27,7 +27,7 @@ const AlertLight = ({ isOn, size = 100 }) => {
             fill="#666"
             rx="4"
           />
-          
+
           {/* Middle base - medium gray */}
           <rect
             x="90"
@@ -37,13 +37,13 @@ const AlertLight = ({ isOn, size = 100 }) => {
             fill="#888"
             rx="6"
           />
-          
+
           {/* Main Alert Body - dome shape */}
           <path
             d="M 105 240 L 105 140 Q 105 90 150 90 Q 195 90 195 140 L 195 240 Z"
             fill={lightColor}
           />
-          
+
           {/* Inner highlight circle */}
           <circle
             cx="150"
@@ -51,7 +51,7 @@ const AlertLight = ({ isOn, size = 100 }) => {
             r="25"
             fill="rgba(255,255,255,0.4)"
           />
-          
+
           {/* Center post/stem */}
           <rect
             x="147"
@@ -61,7 +61,7 @@ const AlertLight = ({ isOn, size = 100 }) => {
             fill="rgba(255,255,255,0.3)"
             rx="3"
           />
-          
+
           {/* Glowing effect - only when light is on */}
           {isOn && (
             <>
@@ -76,7 +76,7 @@ const AlertLight = ({ isOn, size = 100 }) => {
                 opacity="0.3"
                 filter="blur(8px)"
               />
-              
+
               {/* Medium glow */}
               <circle
                 cx="150"
@@ -88,7 +88,7 @@ const AlertLight = ({ isOn, size = 100 }) => {
                 opacity="0.4"
                 filter="blur(4px)"
               />
-              
+
               {/* Inner glow */}
               <circle
                 cx="150"
@@ -109,66 +109,64 @@ const AlertLight = ({ isOn, size = 100 }) => {
 };
 
 function GasSensor({ initialGasValue, initialName, initialLocation, battery, uuid }) {
-    const [gasValue, setGasValue] = useState(initialGasValue);
-    const [name, setName] = useState(initialName);
-    const [location, setLocation] = useState(initialLocation);
-    const [batteryLevel, setBatteryLevel] = useState(battery);
+  const [gasValue, setGasValue] = useState(initialGasValue);
+  const [name, setName] = useState(initialName);
+  const [location, setLocation] = useState(initialLocation);
+  const [batteryLevel, setBatteryLevel] = useState(battery);
 
-    const { getUserId } = useUser();
-    const userID = getUserId();
-    
-    // Determine if alert should be on based on gas value
-    const isAlertOn = gasValue > 250;
+  const { getUserId } = useUser();
+  const userID = getUserId();
 
-    useEffect(() => {
-        setGasValue(initialGasValue);
-        setName(initialName);
-        setLocation(initialLocation);
-        setBatteryLevel(battery);
-    }, [initialGasValue, initialName, initialLocation, battery]);
+  // Determine if alert should be on based on gas value
+  const isAlertOn = gasValue > 1200;
 
-    return (
-        <div
-            className="uk-card uk-card-default uk-card-body uk-border-rounded uk-box-shadow-medium"
-            style={{
-                backgroundColor: "var(--soft-amber)",
-                border: "2px solid var(--deep-brown)",
-                borderRadius: "10px",
-                color: "var(--deep-brown)",
-                padding: "20px",
-                margin: "10px",
-                width: "500px",
-                height: "223px",
-                display: "flex",
-                flexDirection: "column",
-                justifyContent: "space-between",
-            }}
-        >
-            <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} />
-            <hr style={{ borderColor: "var(--deep-brown)", margin: "10px 0" }} />
+  useEffect(() => {
+    setGasValue(initialGasValue);
+    setName(initialName);
+    setLocation(initialLocation);
+    setBatteryLevel(battery);
+  }, [initialGasValue, initialName, initialLocation, battery]);
 
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
-                <AlertLight isOn={isAlertOn} size={100} />
-                <div style={{ 
-                    fontSize: '18px', 
-                    fontWeight: 'bold',
-                    color: isAlertOn ? '#dc4444' : 'var(--deep-brown)'
-                }}>
-                    Gas Level: {gasValue} ppm
-                </div>
-                {isAlertOn && (
-                    <div style={{ 
-                        fontSize: '14px', 
-                        color: '#dc4444',
-                        fontWeight: 'bold',
-                        textAlign: 'center'
-                    }}>
-                        ⚠️ ALERT: Gas level exceeds safe threshold!
-                    </div>
-                )}
-            </div>
+  return (
+    <div
+      className="uk-card uk-card-default uk-card-body uk-border-rounded uk-box-shadow-medium"
+      style={{
+        backgroundColor: "var(--soft-amber)",
+        border: "2px solid var(--deep-brown)",
+        borderRadius: "10px",
+        color: "var(--deep-brown)",
+        padding: "20px",
+        margin: "10px",
+        width: "500px",
+        height: "223px",
+        display: "flex",
+        flexDirection: "column",
+        justifyContent: "space-between",
+      }}
+    >
+      <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} deviceType="GasSensor" />
+      <hr style={{ borderColor: "var(--deep-brown)", margin: "10px 0" }} />
+
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }}>
+        <AlertLight isOn={isAlertOn} size={100} />
+        <div style={{
+          fontSize: '18px',
+          fontWeight: 'bold',
+          color: isAlertOn ? '#dc4444' : 'var(--deep-brown)'
+        }}>
         </div>
-    );
+        {isAlertOn && (
+          <div style={{
+            fontSize: '14px',
+            color: '#dc4444',
+            fontWeight: 'bold',
+            textAlign: 'center'
+          }}>
+          </div>
+        )}
+      </div>
+    </div>
+  );
 }
 
 export default GasSensor;

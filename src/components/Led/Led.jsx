@@ -163,7 +163,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                 justifyContent: "space-between",
             }}
         >
-            <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} />
+            <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} deviceType='LedControl'/>
             <hr style={{ borderColor: "var(--deep-brown)", margin: "10px 0" }} />
 
             {/* Knob and Brightness Control Buttons */}
