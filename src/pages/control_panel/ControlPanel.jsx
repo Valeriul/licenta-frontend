@@ -229,10 +229,12 @@ function ControlPanel() {
             className="uk-grid uk-grid-match"
             style={{
                 display: "grid",
-                gridTemplateColumns: "repeat(2, 1fr)",
-                gap: "20px",
-                padding: "20px",
-                marginLeft: "20px",
+                gridTemplateColumns: isSmallScreen ? "1fr" : "repeat(2, 1fr)",
+                gap: isSmallScreen ? "10px" : "20px",
+                padding: isSmallScreen ? "10px" : "20px",
+                marginLeft: isSmallScreen ? "0px" : "20px",
+                width: "100%",
+                justifyContent: "center",
             }}
         >
             {peripherals.length === 0 ? (
@@ -268,9 +270,11 @@ function ControlPanel() {
             <div style={{ display: "flex", width: "100%", justifyContent: "center" }}>
                 <div style={{ 
                     backgroundColor: "var(--warm-beige)", 
-                    padding: "20px", 
-                    width: "min-content", 
-                    alignSelf: "center" 
+                    padding: isSmallScreen ? "10px" : "20px", 
+                    width: isSmallScreen ? "100%" : "min-content", 
+                    alignSelf: "center",
+                    maxWidth: isSmallScreen ? "100vw" : "none",
+                    overflow: isSmallScreen ? "hidden" : "visible"
                 }}>
                     {isSmallScreen ? (
                         // Render without DndProvider for small screens
