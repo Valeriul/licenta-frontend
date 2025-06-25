@@ -1,11 +1,11 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import { useUser } from "../../contexts/UserContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import DraggableCard from "../../components/DraggableCard/DraggableCard";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
-import "./ControlPanel.css"; // Ensure styling consistency
+import "./ControlPanel.css";
 
 function decodeBase64Url(encoded) {
     try {
@@ -40,7 +40,7 @@ function ControlPanel() {
             } else {
                 setUserID(id);
             }
-        } else if (!isUuidLogin) { // only run authentication if not already logged in via UUID
+        } else if (!isUuidLogin) {
             const authenticateWithUUID = async () => {
                 try {
                     const response = await fetch(
@@ -50,15 +50,13 @@ function ControlPanel() {
                         const data = await response.json();
                         login(data);
                         setUserID(data.id_user);
-                        setIsUuidLogin(true); // mark as authenticated so we stop retrying
+                        setIsUuidLogin(true);
                     } else if (!cancelled && !isUuidLogin) {
-                        // If authentication fails, schedule a retry only if not already authenticated
                         setTimeout(authenticateWithUUID, 3000);
                     }
                 } catch (error) {
                     console.error("Error during UUID authentication:", error);
                     if (!cancelled && !isUuidLogin) {
-                        // Retry in case of an error
                         setTimeout(authenticateWithUUID, 3000);
                     }
                 }
@@ -71,7 +69,6 @@ function ControlPanel() {
             cancelled = true;
         };
     }, [uuid, isUuidLogin, getUserId, navigate, login]);
-
 
     useEffect(() => {
         if (!userID) return;
@@ -88,7 +85,7 @@ function ControlPanel() {
     }, [userID]);
 
     useEffect(() => {
-        let isMounted = true; // to prevent state updates if the component unmounts
+        let isMounted = true;
 
         const fetchLoadingData = async () => {
             if (!userID || !isMounted) return;
@@ -109,20 +106,89 @@ function ControlPanel() {
                 console.error("Error fetching loading data:", error);
             }
 
-            // Schedule the next fetch 3 seconds after the current one completes
             if (isMounted) {
                 setTimeout(fetchLoadingData, 3000);
             }
         };
 
-        // Start the polling
         fetchLoadingData();
 
-        // Cleanup function to prevent setting state on an unmounted component
         return () => {
             isMounted = false;
         };
     }, [userID]);
+
+    // moveCard function to handle drag and drop reordering
+    const moveCard = useCallback((draggedUuid, targetUuid) => {
+        if (draggedUuid === targetUuid) return;
+
+        setPeripherals(prevPeripherals => {
+            const newPeripherals = [...prevPeripherals];
+            
+            // Find the indices of the dragged and target cards
+            const draggedIndex = newPeripherals.findIndex(p => p.uuid_Peripheral === draggedUuid);
+            const targetIndex = newPeripherals.findIndex(p => p.uuid_Peripheral === targetUuid);
+            
+            if (draggedIndex === -1 || targetIndex === -1) return prevPeripherals;
+            
+            // Remove the dragged card from its current position
+            const [draggedCard] = newPeripherals.splice(draggedIndex, 1);
+            
+            // Insert the dragged card at the target position
+            newPeripherals.splice(targetIndex, 0, draggedCard);
+            
+            // Update grid_position for all cards based on their new order
+            const updatedPeripherals = newPeripherals.map((peripheral, index) => ({
+                ...peripheral,
+                grid_position: index
+            }));
+            
+            // Send the position updates to the backend
+            saveGridPositions(updatedPeripherals);
+            
+            return updatedPeripherals;
+        });
+    }, [userID]);
+
+    // Function to save grid positions to the backend
+    const saveGridPositions = async (updatedPeripherals) => {
+        if (!userID) return;
+
+        try {
+            console.log('Saving grid positions:', JSON.stringify({
+                id_user: userID,
+                peripherals: updatedPeripherals.map((p, index) => ({
+                    uuid: p.uuid_Peripheral,
+                    grid_position: index + 1,
+                })),
+            }));
+
+            const response = await fetch(
+                `${process.env.REACT_APP_API_URL}/Peripheral/saveGridPosition`,
+                {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        id_user: userID,
+                        peripherals: updatedPeripherals.map((p, index) => ({
+                            uuid: p.uuid_Peripheral,
+                            grid_position: index + 1,
+                        })),
+                    })
+                }
+            );
+
+            if (response.ok) {
+                console.log('Grid positions saved successfully');
+            } else {
+                console.error('Failed to save grid positions:', response.statusText);
+            }
+        } catch (error) {
+            console.error('Error saving grid positions:', error);
+        }
+    };
 
     if (uuid && !isUuidLogin) {
         const ipSegments = decodedIP ? decodedIP.split(".") : ["", "", "", ""];
@@ -148,7 +214,12 @@ function ControlPanel() {
             <div style={{ backgroundColor: "var(--warm-beige)", height: "100%" }}>
                 {!isUuidLogin && <Navbar />}
                 <div style={{ display: "flex", width: "100%", justifyContent: "center" }}>
-                    <div style={{ backgroundColor: "var(--warm-beige)", padding: "20px", width: "min-content", alignSelf: "center" }}>
+                    <div style={{ 
+                        backgroundColor: "var(--warm-beige)", 
+                        padding: "20px", 
+                        width: "min-content", 
+                        alignSelf: "center" 
+                    }}>
                         <div
                             className="uk-grid uk-grid-match"
                             style={{
@@ -167,7 +238,11 @@ function ControlPanel() {
                                     .sort((a, b) => a.grid_position - b.grid_position)
                                     .map((peripheral) =>
                                         peripheral.data != null && (
-                                            <DraggableCard key={peripheral.uuid_Peripheral} peripheral={peripheral} />
+                                            <DraggableCard 
+                                                key={peripheral.uuid_Peripheral} 
+                                                peripheral={peripheral} 
+                                                moveCard={moveCard}
+                                            />
                                         )
                                     )
                             )}
