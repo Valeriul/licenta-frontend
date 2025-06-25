@@ -141,7 +141,29 @@ input[type="radio"]:checked {
 
 @media (max-width: 800px) and (max-height: 480px) {
   html {
-    zoom: 0.4167;
-    /* 800/1920 = 0.4167 */
+    zoom: 0.5;
+    /* Increased from 0.4167 to better fill the screen */
+  }
+  
+  body {
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+    width: 100vw;
+    height: 100vh;
+  }
+  
+  #root {
+    width: 100vw;
+    height: 100vh;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+  
+  /* Ensure the control panel takes full height */
+  div[style*="background-color: var(--warm-beige)"] {
+    min-height: 100vh !important;
+    height: 100vh !important;
   }
 }

@@ -3,6 +3,7 @@ import { useUser } from "../../contexts/UserContext";
 import { useNavigate, useLocation } from "react-router-dom";
 import Navbar from "../../components/navbar/Navbar";
 import DraggableCard from "../../components/DraggableCard/DraggableCard";
+import CardFactory from "../../components/CardFactory/CardFactory";
 import { DndProvider } from "react-dnd";
 import { HTML5Backend } from "react-dnd-html5-backend";
 import "./ControlPanel.css";
@@ -24,11 +25,25 @@ function ControlPanel() {
     const [userID, setUserID] = useState(null);
     const [peripherals, setPeripherals] = useState([]);
     const [isUuidLogin, setIsUuidLogin] = useState(false);
+    const [isSmallScreen, setIsSmallScreen] = useState(false);
     const navigate = useNavigate();
     const location = useLocation();
     const searchParams = new URLSearchParams(location.search);
     const uuid = searchParams.get("uuid");
     const decodedIP = uuid ? decodeBase64Url(uuid) : null;
+
+    // Check for 800x480 resolution
+    useEffect(() => {
+        const checkScreenSize = () => {
+            const isSmall = window.innerWidth <= 800 && window.innerHeight <= 480;
+            setIsSmallScreen(isSmall);
+        };
+
+        checkScreenSize();
+        window.addEventListener('resize', checkScreenSize);
+
+        return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
 
     useEffect(() => {
         let cancelled = false;
@@ -118,9 +133,9 @@ function ControlPanel() {
         };
     }, [userID]);
 
-    // moveCard function to handle drag and drop reordering
+    // moveCard function to handle drag and drop reordering (disabled on small screens)
     const moveCard = useCallback((draggedUuid, targetUuid) => {
-        if (draggedUuid === targetUuid) return;
+        if (draggedUuid === targetUuid || isSmallScreen) return;
 
         setPeripherals(prevPeripherals => {
             const newPeripherals = [...prevPeripherals];
@@ -148,11 +163,11 @@ function ControlPanel() {
             
             return updatedPeripherals;
         });
-    }, [userID]);
+    }, [userID, isSmallScreen]);
 
     // Function to save grid positions to the backend
     const saveGridPositions = async (updatedPeripherals) => {
-        if (!userID) return;
+        if (!userID || isSmallScreen) return;
 
         try {
             console.log('Saving grid positions:', JSON.stringify({
@@ -209,48 +224,66 @@ function ControlPanel() {
         );
     }
 
-    return (
-        <DndProvider backend={HTML5Backend}>
-            <div style={{ backgroundColor: "var(--warm-beige)", height: "100%" }}>
-                {!isUuidLogin && <Navbar />}
-                <div style={{ display: "flex", width: "100%", justifyContent: "center" }}>
-                    <div style={{ 
-                        backgroundColor: "var(--warm-beige)", 
-                        padding: "20px", 
-                        width: "min-content", 
-                        alignSelf: "center" 
-                    }}>
-                        <div
-                            className="uk-grid uk-grid-match"
-                            style={{
-                                display: "grid",
-                                gridTemplateColumns: "repeat(2, 1fr)",
-                                gap: "20px",
-                                padding: "20px",
-                                marginLeft: "20px",
-                            }}
-                        >
-                            {peripherals.length === 0 ? (
-                                null
+    const GridContent = () => (
+        <div
+            className="uk-grid uk-grid-match"
+            style={{
+                display: "grid",
+                gridTemplateColumns: "repeat(2, 1fr)",
+                gap: "20px",
+                padding: "20px",
+                marginLeft: "20px",
+            }}
+        >
+            {peripherals.length === 0 ? (
+                null
+            ) : (
+                console.log(peripherals),
+                peripherals
+                    .sort((a, b) => a.grid_position - b.grid_position)
+                    .map((peripheral) =>
+                        peripheral.data != null && (
+                            isSmallScreen ? (
+                                // For small screens, render cards without drag and drop
+                                <div key={peripheral.uuid_Peripheral} style={{ padding: "10px" }}>
+                                    {CardFactory(peripheral)}
+                                </div>
                             ) : (
-                                console.log(peripherals),
-                                peripherals
-                                    .sort((a, b) => a.grid_position - b.grid_position)
-                                    .map((peripheral) =>
-                                        peripheral.data != null && (
-                                            <DraggableCard 
-                                                key={peripheral.uuid_Peripheral} 
-                                                peripheral={peripheral} 
-                                                moveCard={moveCard}
-                                            />
-                                        )
-                                    )
-                            )}
-                        </div>
-                    </div>
+                                // For normal screens, use draggable cards
+                                <DraggableCard 
+                                    key={peripheral.uuid_Peripheral} 
+                                    peripheral={peripheral} 
+                                    moveCard={moveCard}
+                                />
+                            )
+                        )
+                    )
+            )}
+        </div>
+    );
+
+    return (
+        <div style={{ backgroundColor: "var(--warm-beige)", height: "100%" }}>
+            {!isUuidLogin && <Navbar />}
+            <div style={{ display: "flex", width: "100%", justifyContent: "center" }}>
+                <div style={{ 
+                    backgroundColor: "var(--warm-beige)", 
+                    padding: "20px", 
+                    width: "min-content", 
+                    alignSelf: "center" 
+                }}>
+                    {isSmallScreen ? (
+                        // Render without DndProvider for small screens
+                        <GridContent />
+                    ) : (
+                        // Render with DndProvider for normal screens
+                        <DndProvider backend={HTML5Backend}>
+                            <GridContent />
+                        </DndProvider>
+                    )}
                 </div>
             </div>
-        </DndProvider>
+        </div>
     );
 }
 

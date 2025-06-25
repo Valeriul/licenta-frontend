@@ -1,4 +1,4 @@
-import React, { useRef } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import { useDrag, useDrop } from "react-dnd";
 import CardFactory from "../CardFactory/CardFactory";
 
@@ -6,6 +6,20 @@ const ItemType = "CARD";
 
 function DraggableCard({ peripheral, moveCard }) {
     const ref = useRef(null);
+    const [isSmallScreen, setIsSmallScreen] = useState(false);
+
+    // Check for 800x480 resolution
+    useEffect(() => {
+        const checkScreenSize = () => {
+            const isSmall = window.innerWidth <= 800 && window.innerHeight <= 480;
+            setIsSmallScreen(isSmall);
+        };
+
+        checkScreenSize();
+        window.addEventListener('resize', checkScreenSize);
+
+        return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
 
     const [{ isDragging }, drag] = useDrag({
         type: ItemType,
@@ -16,12 +30,13 @@ function DraggableCard({ peripheral, moveCard }) {
         collect: (monitor) => ({
             isDragging: monitor.isDragging(),
         }),
+        canDrag: !isSmallScreen, // Disable dragging on small screens
     });
 
     const [{ isOver, canDrop }, drop] = useDrop({
         accept: ItemType,
         drop: (item) => {
-            if (item.uuid !== peripheral.uuid_Peripheral) {
+            if (item.uuid !== peripheral.uuid_Peripheral && !isSmallScreen) {
                 moveCard(item.uuid, peripheral.uuid_Peripheral);
             }
         },
@@ -29,10 +44,13 @@ function DraggableCard({ peripheral, moveCard }) {
             isOver: monitor.isOver(),
             canDrop: monitor.canDrop(),
         }),
+        canDrop: !isSmallScreen, // Disable dropping on small screens
     });
 
-    // Combine drag and drop refs
-    drag(drop(ref));
+    // Only combine drag and drop refs if not on small screen
+    if (!isSmallScreen) {
+        drag(drop(ref));
+    }
 
     // Styling based on drag/drop state
     const cardStyle = {
@@ -40,21 +58,21 @@ function DraggableCard({ peripheral, moveCard }) {
         opacity: isDragging ? 0.5 : 1,
         transform: isDragging ? 'rotate(5deg)' : 'none',
         transition: 'all 0.3s ease',
-        cursor: isDragging ? 'grabbing' : 'grab',
+        cursor: isSmallScreen ? 'default' : (isDragging ? 'grabbing' : 'grab'),
         position: 'relative',
         zIndex: isDragging ? 1000 : 1,
     };
 
-    // Add visual feedback for drop zones
-    if (isOver && canDrop) {
+    // Add visual feedback for drop zones only if not on small screen
+    if (isOver && canDrop && !isSmallScreen) {
         cardStyle.transform = 'scale(1.05)';
         cardStyle.boxShadow = '0 8px 20px rgba(59, 44, 53, 0.3)';
     }
 
     return (
         <div ref={ref} style={cardStyle}>
-            {/* Visual indicator when dragging over */}
-            {isOver && canDrop && (
+            {/* Visual indicator when dragging over - only show on larger screens */}
+            {isOver && canDrop && !isSmallScreen && (
                 <div
                     style={{
                         position: 'absolute',

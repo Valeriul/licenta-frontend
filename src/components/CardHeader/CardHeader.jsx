@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import BatteryGauge from "react-battery-gauge";
@@ -22,9 +22,23 @@ function CardHeader({
     const [isEditingName, setIsEditingName] = useState(false);
     const [isEditingLocation, setIsEditingLocation] = useState(false);
     const [modalVisible, setModalVisible] = useState(false);
+    const [isSmallScreen, setIsSmallScreen] = useState(false);
 
     const { getUserId } = useUser();
     const userId = getUserId();
+
+    // Check for 800x480 resolution
+    useEffect(() => {
+        const checkScreenSize = () => {
+            const isSmall = window.innerWidth <= 800 && window.innerHeight <= 480;
+            setIsSmallScreen(isSmall);
+        };
+
+        checkScreenSize();
+        window.addEventListener('resize', checkScreenSize);
+
+        return () => window.removeEventListener('resize', checkScreenSize);
+    }, []);
 
     const renamePeripheral = async (newName) => {
         try {
@@ -126,7 +140,7 @@ function CardHeader({
                 {/* Left side - Name and Location */}
                 <div>
                     {/* Device Name */}
-                    {isEditingName ? (
+                    {isEditingName && !isSmallScreen ? (
                         <input
                             type="text"
                             value={name}
@@ -139,16 +153,18 @@ function CardHeader({
                     ) : (
                         <h3 style={{ margin: 0, display: "flex", alignItems: "center" }}>
                             {name}
-                            <i
-                                className="pi pi-pencil"
-                                style={{ marginLeft: "8px", cursor: "pointer" }}
-                                onClick={() => setIsEditingName(true)}
-                            />
+                            {!isSmallScreen && (
+                                <i
+                                    className="pi pi-pencil"
+                                    style={{ marginLeft: "8px", cursor: "pointer" }}
+                                    onClick={() => setIsEditingName(true)}
+                                />
+                            )}
                         </h3>
                     )}
 
                     {/* Device Location */}
-                    {isEditingLocation ? (
+                    {isEditingLocation && !isSmallScreen ? (
                         <input
                             type="text"
                             value={location}
@@ -160,13 +176,15 @@ function CardHeader({
                             style={{ fontSize: "0.9rem" }}
                         />
                     ) : (
-                        <span className="uk-text-muted" style={{ fontSize: "0.9rem", cursor: "pointer" }}>
+                        <span className="uk-text-muted" style={{ fontSize: "0.9rem", cursor: isSmallScreen ? "default" : "pointer" }}>
                             {location}
-                            <i
-                                className="pi pi-pencil"
-                                style={{ marginLeft: "8px", cursor: "pointer" }}
-                                onClick={() => setIsEditingLocation(true)}
-                            />
+                            {!isSmallScreen && (
+                                <i
+                                    className="pi pi-pencil"
+                                    style={{ marginLeft: "8px", cursor: "pointer" }}
+                                    onClick={() => setIsEditingLocation(true)}
+                                />
+                            )}
                         </span>
                     )}
                 </div>
