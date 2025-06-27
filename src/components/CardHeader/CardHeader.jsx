@@ -3,8 +3,7 @@ import "primereact/resources/primereact.min.css";
 import "primeicons/primeicons.css";
 import BatteryGauge from "react-battery-gauge";
 import { Button } from 'primereact/button';
-import { Dialog } from 'primereact/dialog';
-import DeviceDetailsModal from '../DeviceDetailsModal/DeviceDetailsModal';
+import { useModal } from "../../contexts/ModalContext";
 import "../../styles.css";
 import "./CardHeader.css";
 import { useUser } from "../../contexts/UserContext";
@@ -21,9 +20,9 @@ function CardHeader({
     const [location, setLocation] = useState(initialLocation);
     const [isEditingName, setIsEditingName] = useState(false);
     const [isEditingLocation, setIsEditingLocation] = useState(false);
-    const [modalVisible, setModalVisible] = useState(false);
     const [isSmallScreen, setIsSmallScreen] = useState(false);
 
+    const { openDeviceModal } = useModal();
     const { getUserId } = useUser();
     const userId = getUserId();
 
@@ -39,6 +38,12 @@ function CardHeader({
 
         return () => window.removeEventListener('resize', checkScreenSize);
     }, []);
+
+    // Update local state when props change
+    useEffect(() => {
+        setName(initialName);
+        setLocation(initialLocation);
+    }, [initialName, initialLocation]);
 
     const renamePeripheral = async (newName) => {
         try {
@@ -110,168 +115,111 @@ function CardHeader({
         }
     };
 
-    const openModal = () => {
-        setModalVisible(true);
+    const handleOpenModal = () => {
+        openDeviceModal({
+            name,
+            location,
+            uuid,
+            battery,
+            deviceType,
+            additionalData
+        });
     };
-
-    const closeModal = () => {
-        setModalVisible(false);
-    };
-
-    const modalHeaderTemplate = (
-        <div className="uk-flex uk-flex-end uk-width-1-1">
-            <Button
-                icon="pi pi-times"
-                className="p-button-rounded p-button-text"
-                onClick={closeModal}
-                style={{ 
-                    color: 'var(--deep-brown)',
-                    backgroundColor: 'transparent',
-                    border: 'none',
-                    fontSize: '1.2rem'
-                }}
-            />
-        </div>
-    );
 
     return (
-        <>
-            <div className="uk-flex uk-flex-between uk-flex-middle">
-                {/* Left side - Name and Location */}
-                <div>
-                    {/* Device Name */}
-                    {isEditingName && !isSmallScreen ? (
-                        <input
-                            type="text"
-                            value={name}
-                            onChange={(e) => setName(e.target.value)}
-                            onBlur={handleNameBlur}
-                            onKeyPress={handleNameKeyPress}
-                            autoFocus
-                            className="custom-input"
-                        />
-                    ) : (
-                        <h3 style={{ margin: 0, display: "flex", alignItems: "center" }}>
-                            {name}
-                            {!isSmallScreen && (
-                                <i
-                                    className="pi pi-pencil"
-                                    style={{ marginLeft: "8px", cursor: "pointer" }}
-                                    onClick={() => setIsEditingName(true)}
-                                />
-                            )}
-                        </h3>
-                    )}
-
-                    {/* Device Location */}
-                    {isEditingLocation && !isSmallScreen ? (
-                        <input
-                            type="text"
-                            value={location}
-                            onChange={(e) => setLocation(e.target.value)}
-                            onBlur={handleLocationBlur}
-                            onKeyPress={handleLocationKeyPress}
-                            autoFocus
-                            className="custom-input"
-                            style={{ fontSize: "0.9rem" }}
-                        />
-                    ) : (
-                        <span className="uk-text-muted" style={{ fontSize: "0.9rem", cursor: isSmallScreen ? "default" : "pointer" }}>
-                            {location}
-                            {!isSmallScreen && (
-                                <i
-                                    className="pi pi-pencil"
-                                    style={{ marginLeft: "8px", cursor: "pointer" }}
-                                    onClick={() => setIsEditingLocation(true)}
-                                />
-                            )}
-                        </span>
-                    )}
-                </div>
-
-                {/* Right side - Battery and Expand Button */}
-                <div className="uk-flex uk-flex-middle" style={{ gap: "10px" }}>
-                    {/* Fullscreen Modal Button */}
-                    <Button
-                        icon="pi pi-chart-line"
-                        className="p-button-rounded p-button-outlined"
-                        onClick={openModal}
-                        tooltip="View Details"
-                        tooltipOptions={{ position: 'left' }}
-                        style={{
-                            backgroundColor: 'transparent',
-                            border: '2px solid var(--deep-brown)',
-                            color: 'var(--deep-brown)',
-                            width: '35px',
-                            height: '35px',
-                            fontSize: '0.9rem',
-                            transition: 'all 0.3s ease'
-                        }}
-                        onMouseEnter={(e) => {
-                            e.target.style.backgroundColor = 'var(--soft-green)';
-                            e.target.style.color = 'var(--warm-beige)';
-                        }}
-                        onMouseLeave={(e) => {
-                            e.target.style.backgroundColor = 'transparent';
-                            e.target.style.color = 'var(--deep-brown)';
-                        }}
+        <div className="uk-flex uk-flex-between uk-flex-middle">
+            {/* Left side - Name and Location */}
+            <div>
+                {/* Device Name */}
+                {isEditingName && !isSmallScreen ? (
+                    <input
+                        type="text"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        onBlur={handleNameBlur}
+                        onKeyPress={handleNameKeyPress}
+                        autoFocus
+                        className="custom-input"
                     />
+                ) : (
+                    <h3 style={{ margin: 0, display: "flex", alignItems: "center" }}>
+                        {name}
+                        {!isSmallScreen && (
+                            <i
+                                className="pi pi-pencil"
+                                style={{ marginLeft: "8px", cursor: "pointer" }}
+                                onClick={() => setIsEditingName(true)}
+                            />
+                        )}
+                    </h3>
+                )}
 
-                    {/* Battery Gauge */}
-                    <BatteryGauge
-                        value={battery}
-                        width={60}
-                        height={40}
-                        fontSize={20}
-                        showPercentage={true}
-                        color={"#000"}
-                        style={{ padding: "0", margin: "0" }}
+                {/* Device Location */}
+                {isEditingLocation && !isSmallScreen ? (
+                    <input
+                        type="text"
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                        onBlur={handleLocationBlur}
+                        onKeyPress={handleLocationKeyPress}
+                        autoFocus
+                        className="custom-input"
+                        style={{ fontSize: "0.9rem" }}
                     />
-                </div>
+                ) : (
+                    <span className="uk-text-muted" style={{ fontSize: "0.9rem", cursor: isSmallScreen ? "default" : "pointer" }}>
+                        {location}
+                        {!isSmallScreen && (
+                            <i
+                                className="pi pi-pencil"
+                                style={{ marginLeft: "8px", cursor: "pointer" }}
+                                onClick={() => setIsEditingLocation(true)}
+                            />
+                        )}
+                    </span>
+                )}
             </div>
 
-            {/* Fullscreen Modal */}
-            <Dialog
-                visible={modalVisible}
-                onHide={closeModal}
-                header={modalHeaderTemplate}
-                modal
-                maximizable={false}
-                closable={false}
-                style={{ 
-                    width: '100vw', 
-                    height: '100vh',
-                    margin: 0,
-                    borderRadius: 0
-                }}
-                contentStyle={{ 
-                    height: 'calc(100vh - 80px)',
-                    backgroundColor: 'var(--warm-beige)',
-                    padding: '30px',
-                    overflow: 'auto'
-                }}
-                headerStyle={{
-                    backgroundColor: 'var(--soft-amber)',
-                    border: 'none',
-                    borderBottom: '2px solid var(--deep-brown)',
-                    padding: '20px'
-                }}
-                maskStyle={{
-                    backgroundColor: 'rgba(0, 0, 0, 0.8)'
-                }}
-            >
-                {/* Use the separate DeviceDetailsModal component */}
-                <DeviceDetailsModal
-                    name={name}
-                    location={location}
-                    uuid={uuid}
-                    battery={battery}
-                    deviceType={deviceType}
-                    additionalData={additionalData}
-                    onClose={closeModal}
+            {/* Right side - Battery and Expand Button */}
+            <div className="uk-flex uk-flex-middle" style={{ gap: "10px" }}>
+                {/* Fullscreen Modal Button */}
+                <Button
+                    icon="pi pi-chart-line"
+                    className="p-button-rounded p-button-outlined"
+                    onClick={handleOpenModal}
+                    tooltip="View Details"
+                    tooltipOptions={{ position: 'left' }}
+                    style={{
+                        backgroundColor: 'transparent',
+                        border: '2px solid var(--deep-brown)',
+                        color: 'var(--deep-brown)',
+                        width: '35px',
+                        height: '35px',
+                        fontSize: '0.9rem',
+                        transition: 'all 0.3s ease'
+                    }}
+                    onMouseEnter={(e) => {
+                        e.target.style.backgroundColor = 'var(--soft-green)';
+                        e.target.style.color = 'var(--warm-beige)';
+                    }}
+                    onMouseLeave={(e) => {
+                        e.target.style.backgroundColor = 'transparent';
+                        e.target.style.color = 'var(--deep-brown)';
+                    }}
                 />
-            </Dialog>
-        </>
+
+                {/* Battery Gauge */}
+                <BatteryGauge
+                    value={battery}
+                    width={60}
+                    height={40}
+                    fontSize={20}
+                    showPercentage={true}
+                    color={"#000"}
+                    style={{ padding: "0", margin: "0" }}
+                />
+            </div>
+        </div>
     );
 }
 
