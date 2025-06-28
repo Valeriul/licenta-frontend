@@ -4,10 +4,11 @@ import 'primeicons/primeicons.css';
 import { Knob } from 'primereact/knob';
 import { Button } from 'primereact/button';
 import { useUser } from '../../contexts/UserContext';
+import { usePendingState } from '../../contexts/PendingStateContext';
 import CardHeader from "../CardHeader/CardHeader";
 
 // Compact Realistic Light Switch Component
-const CompactLightSwitch = ({ isOn, onToggle }) => {
+const CompactLightSwitch = ({ isOn, onToggle, isPending = false }) => {
   return (
     <div style={{ position: 'relative' }}>
       {/* Wall plate */}
@@ -20,9 +21,11 @@ const CompactLightSwitch = ({ isOn, onToggle }) => {
           border: '1px solid #e5e7eb',
           width: '70px',
           height: '112px',
-          cursor: 'pointer'
+          cursor: isPending ? 'wait' : 'pointer',
+          opacity: isPending ? 0.7 : 1,
+          transition: 'opacity 0.3s ease'
         }}
-        onClick={onToggle}
+        onClick={!isPending ? onToggle : undefined}
       >
         {/* Switch housing */}
         <div 
@@ -144,73 +147,77 @@ const CompactLightSwitch = ({ isOn, onToggle }) => {
   );
 };
 
-function Relay({ initialIsOn, initialName, initialLocation, battery, uuid }) {
-    const [isOn, setIsOn] = useState(initialIsOn);
+function Relay({ initialState, initialName, initialLocation, battery, uuid }) {
+    // UI state (what user sees)
+    const [isOn, setIsOn] = useState(initialState);
     const [name, setName] = useState(initialName);
     const [location, setLocation] = useState(initialLocation);
     const [batteryLevel, setBatteryLevel] = useState(battery);
-
+    
     const { getUserId } = useUser();
+    const { shouldUpdateValue, hasPendingOperations, sendCommand, getPendingValue, getDisplayValue } = usePendingState();
     const userID = getUserId();
 
-    const bufferRef = useRef([]);
-    const timeoutRef = useRef(null);
-
-    // Fix: Remove isOn from dependency array to prevent infinite re-renders
+    // Update state only when context allows it (no pending or values match)
     useEffect(() => {
-        setIsOn(initialIsOn);
+        // Always update basic info
         setName(initialName);
         setLocation(initialLocation);
         setBatteryLevel(battery);
-    }, [initialIsOn, initialName, initialLocation, battery]);
+        
+        // Update relay state only if allowed by context
+        if (shouldUpdateValue(uuid, 'state', initialState)) {
+            setIsOn(initialState);
+        }
+    }, [initialState, initialName, initialLocation, battery, uuid, shouldUpdateValue]);
+
+    const sendRelayCommand = (command, targetState) => {
+        // DON'T update UI immediately - let context handle it
+        console.log('Relay command - sending:', command, 'target state:', targetState);
+        
+        // Send command through context - UI will update when backend confirms
+        sendCommand(uuid, 'state', targetState, () => 
+            fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data: `{"type":"${command}"}`,
+                    uuid: uuid
+                }),
+            })
+        );
+    };
 
     const setOn = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                data: `{"type":"SET_ON"}`,
-                uuid: uuid
-            }),
-        }).then((response) => {
-            if (response.ok) {
-                console.log("Relay set successfully: ON");
-                setIsOn(true);
-            } else {
-                console.error("Failed to set relay:", response.statusText);
-            }
-        }).catch((error) => {
-            console.error("Error setting relay:", error);
-        });
+        sendRelayCommand("SET_ON", true);
     };
 
     const setOff = () => {
-        fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                data: `{"type":"SET_OFF"}`,
-                uuid: uuid
-            }),
-        }).then((response) => {
-            if (response.ok) {
-                console.log("Relay set successfully: OFF");
-                setIsOn(false);
-            } else {
-                console.error("Failed to set relay:", response.statusText);
-            }
-        }).catch((error) => {
-            console.error("Error setting relay:", error);
-        });
+        sendRelayCommand("SET_OFF", false);
     };
 
     const handleToggle = () => {
-        if (isOn) {
+        const pendingState = getPendingValue(uuid, 'state');
+        
+        if (pendingState !== null) {
+            return; // Don't allow toggle during pending state
+        }
+        
+        const currentDisplayState = getDisplayValue(uuid, 'state', isOn);
+        
+        if (currentDisplayState) {
             setOff();
         } else {
             setOn();
         }
     };
+
+    // Check for pending operations and get display values
+    const pendingState = getPendingValue(uuid, 'state');
+    const hasPending = hasPendingOperations(uuid);
+    
+    // Use display value (shows pending value if exists, otherwise current value)
+    const displayState = getDisplayValue(uuid, 'state', isOn);
 
     return (
         <div
@@ -227,6 +234,9 @@ function Relay({ initialIsOn, initialName, initialLocation, battery, uuid }) {
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
+                // Add visual indicator for pending state
+                opacity: hasPending ? 0.8 : 1,
+                transition: "opacity 0.3s ease"
             }}
         >
             <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} deviceType='Relay'/>
@@ -234,7 +244,11 @@ function Relay({ initialIsOn, initialName, initialLocation, battery, uuid }) {
 
             {/* Compact Light Switch */}
             <div className="uk-flex uk-flex-center uk-flex-middle" style={{ position: 'relative' }}>
-                <CompactLightSwitch isOn={isOn} onToggle={handleToggle} />
+                <CompactLightSwitch 
+                    isOn={displayState} 
+                    onToggle={handleToggle} 
+                    isPending={pendingState !== null}
+                />
             </div>
         </div>
     );

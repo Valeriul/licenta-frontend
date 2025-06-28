@@ -1,10 +1,247 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import 'primereact/resources/primereact.min.css';
 import 'primeicons/primeicons.css';
-import { Knob } from 'primereact/knob';
 import { Button } from 'primereact/button';
 import { useUser } from '../../contexts/UserContext';
+import { usePendingState } from '../../contexts/PendingStateContext';
 import CardHeader from "../CardHeader/CardHeader";
+
+// Custom Knob Component
+const CustomKnob = ({ 
+    value = 50, 
+    min = 0, 
+    max = 100, 
+    size = 100, 
+    onChange, 
+    onChangeComplete,
+    disabled = false,
+    strokeWidth = 10,
+    valueColor = '#4ade80',
+    rangeColor = '#e5e7eb'
+}) => {
+    const [isDragging, setIsDragging] = useState(false);
+    const [currentValue, setCurrentValue] = useState(value);
+    const knobRef = useRef(null);
+    const centerX = size / 2;
+    const centerY = size / 2;
+    const radius = (size - strokeWidth - 10) / 2; // Reduced radius to prevent clipping
+
+    useEffect(() => {
+        setCurrentValue(value);
+    }, [value]);
+
+    const normalizeValue = (val) => Math.max(min, Math.min(max, val));
+
+    const valueToAngle = (val) => {
+        const normalizedValue = (val - min) / (max - min);
+        // Map 0-1 to 200° to 340° (140° arc at bottom for bigger arc)
+        // 0% = 200° (bottom-left), 50% = 270° (bottom), 100% = 340° (bottom-right)
+        return 200 + (normalizedValue * 140);
+    };
+
+    const angleToValue = (angle) => {
+        // Convert angle to 200-340 range
+        let normalizedAngle = angle;
+        
+        // Handle angle wrapping
+        if (normalizedAngle < 0) normalizedAngle += 360;
+        
+        // Clamp to our 140° range
+        if (normalizedAngle < 200) normalizedAngle = 200;
+        if (normalizedAngle > 340) normalizedAngle = 340;
+        
+        // Convert angle to value: 200° = 0%, 340° = 100%
+        const normalizedValue = (normalizedAngle - 200) / 140;
+        const valueRange = max - min;
+        return Math.round(min + normalizedValue * valueRange);
+    };
+
+    const getAngleFromPoint = (clientX, clientY) => {
+        if (!knobRef.current) return 0;
+        
+        const rect = knobRef.current.getBoundingClientRect();
+        const centerX = rect.left + rect.width / 2;
+        const centerY = rect.top + rect.height / 2;
+        
+        const deltaX = clientX - centerX;
+        const deltaY = clientY - centerY;
+        
+        return Math.atan2(deltaY, deltaX) * (180 / Math.PI);
+    };
+
+    const handleMouseDown = useCallback((e) => {
+        if (disabled) return;
+        
+        e.preventDefault();
+        setIsDragging(true);
+        
+        const angle = getAngleFromPoint(e.clientX, e.clientY);
+        const newValue = normalizeValue(angleToValue(angle));
+        setCurrentValue(newValue);
+        onChange && onChange({ value: newValue });
+    }, [disabled, onChange, min, max]);
+
+    const handleMouseMove = useCallback((e) => {
+        if (!isDragging || disabled) return;
+        
+        e.preventDefault();
+        const angle = getAngleFromPoint(e.clientX, e.clientY);
+        const newValue = normalizeValue(angleToValue(angle));
+        setCurrentValue(newValue);
+        onChange && onChange({ value: newValue });
+    }, [isDragging, disabled, onChange, min, max]);
+
+    const handleMouseUp = useCallback((e) => {
+        if (!isDragging) return;
+        
+        setIsDragging(false);
+        onChangeComplete && onChangeComplete({ value: currentValue });
+    }, [isDragging, currentValue, onChangeComplete]);
+
+    // Touch events
+    const handleTouchStart = useCallback((e) => {
+        if (disabled) return;
+        
+        e.preventDefault();
+        const touch = e.touches[0];
+        setIsDragging(true);
+        
+        const angle = getAngleFromPoint(touch.clientX, touch.clientY);
+        const newValue = normalizeValue(angleToValue(angle));
+        setCurrentValue(newValue);
+        onChange && onChange({ value: newValue });
+    }, [disabled, onChange, min, max]);
+
+    const handleTouchMove = useCallback((e) => {
+        if (!isDragging || disabled) return;
+        
+        e.preventDefault();
+        const touch = e.touches[0];
+        const angle = getAngleFromPoint(touch.clientX, touch.clientY);
+        const newValue = normalizeValue(angleToValue(angle));
+        setCurrentValue(newValue);
+        onChange && onChange({ value: newValue });
+    }, [isDragging, disabled, onChange, min, max]);
+
+    const handleTouchEnd = useCallback((e) => {
+        if (!isDragging) return;
+        
+        e.preventDefault();
+        setIsDragging(false);
+        onChangeComplete && onChangeComplete({ value: currentValue });
+    }, [isDragging, currentValue, onChangeComplete]);
+
+    // Global event listeners
+    useEffect(() => {
+        if (isDragging) {
+            document.addEventListener('mousemove', handleMouseMove);
+            document.addEventListener('mouseup', handleMouseUp);
+            document.addEventListener('touchmove', handleTouchMove);
+            document.addEventListener('touchend', handleTouchEnd);
+            
+            return () => {
+                document.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp);
+                document.removeEventListener('touchmove', handleTouchMove);
+                document.removeEventListener('touchend', handleTouchEnd);
+            };
+        }
+    }, [isDragging, handleMouseMove, handleMouseUp, handleTouchMove, handleTouchEnd]);
+
+    const currentAngle = valueToAngle(currentValue);
+    
+    // Create SVG path for the arc
+    const createArcPath = (startAngle, endAngle, radius, centerX, centerY) => {
+        const start = {
+            x: centerX + radius * Math.cos((startAngle * Math.PI) / 180),
+            y: centerY + radius * Math.sin((startAngle * Math.PI) / 180)
+        };
+        const end = {
+            x: centerX + radius * Math.cos((endAngle * Math.PI) / 180),
+            y: centerY + radius * Math.sin((endAngle * Math.PI) / 180)
+        };
+        
+        // For our 140° arc from 200° to 340°
+        const largeArcFlag = '0'; // 140° is less than 180°
+        const sweepFlag = '1'; // Clockwise direction
+        
+        return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`;
+    };
+
+    const backgroundPath = createArcPath(200, 340, radius, centerX, centerY);
+    const valuePath = createArcPath(200, currentAngle, radius, centerX, centerY);
+
+    // Calculate handle position
+    const handleX = centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
+    const handleY = centerY + radius * Math.sin((currentAngle * Math.PI) / 180);
+
+    return (
+        <div 
+            style={{ 
+                display: 'inline-block', 
+                cursor: disabled ? 'default' : (isDragging ? 'grabbing' : 'grab'),
+                userSelect: 'none',
+                opacity: disabled ? 0.6 : 1,
+                transition: 'opacity 0.3s ease'
+            }}
+        >
+            <svg
+                ref={knobRef}
+                width={size}
+                height={size}
+                onMouseDown={handleMouseDown}
+                onTouchStart={handleTouchStart}
+                style={{ 
+                    outline: 'none',
+                    filter: isDragging ? 'drop-shadow(0 4px 8px rgba(0,0,0,0.2))' : 'none',
+                    transition: 'filter 0.2s ease'
+                }}
+            >
+                {/* Background track */}
+                <path
+                    d={backgroundPath}
+                    stroke={rangeColor}
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                    strokeLinecap="round"
+                />
+                
+                {/* Value track */}
+                <path
+                    d={valuePath}
+                    stroke={valueColor}
+                    strokeWidth={strokeWidth}
+                    fill="none"
+                    strokeLinecap="round"
+                />
+                
+                {/* Handle */}
+                <circle
+                    cx={handleX}
+                    cy={handleY}
+                    r={strokeWidth / 2 + 2}
+                    fill={valueColor}
+                    stroke="white"
+                    strokeWidth="2"
+                    style={{
+                        filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.2))',
+                        transform: isDragging ? 'scale(1.1)' : 'scale(1)',
+                        transformOrigin: `${handleX}px ${handleY}px`,
+                        transition: 'transform 0.2s ease'
+                    }}
+                />
+                
+                {/* Center dot */}
+                <circle
+                    cx={centerX}
+                    cy={centerY}
+                    r="3"
+                    fill={rangeColor}
+                />
+            </svg>
+        </div>
+    );
+};
 
 // LED Component
 const LEDIndicator = ({ brightness = 50, color = '#ffd700', size = 60 }) => {
@@ -53,98 +290,125 @@ const LEDIndicator = ({ brightness = 50, color = '#ffd700', size = 60 }) => {
 };
 
 function Led({ initialBrightness, initialName, initialLocation, battery, uuid, initialColor = '#4ade80' }) {
+    // UI state (what user sees)
     const [brightness, setBrightness] = useState(initialBrightness);
     const [name, setName] = useState(initialName);
     const [location, setLocation] = useState(initialLocation);
     const [batteryLevel, setBatteryLevel] = useState(battery);
     const [ledColor, setLedColor] = useState(initialColor);
-
+    
     const { getUserId } = useUser();
+    const { shouldUpdateValue, hasPendingOperations, sendCommand, getPendingValue, getDisplayValue } = usePendingState();
     const userID = getUserId();
 
     const bufferRef = useRef([]);
     const timeoutRef = useRef(null);
 
+    // Update state only when context allows it (no pending or values match)
     useEffect(() => {
-        setBrightness(initialBrightness);
+        // Always update basic info
         setName(initialName);
         setLocation(initialLocation);
         setBatteryLevel(battery);
-        setLedColor(initialColor);
-    }, [initialBrightness, initialName, initialLocation, battery, initialColor]);
-
-
-    const sendColorRequest = (color) => {
-        fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                data: `{"type":"SET_COLOR","value":"${color}"}`,
-                uuid: uuid
-            }),
-        }).then((response) => {
-            if (response.ok) {
-                console.log("Color set successfully:", color);
-            } else {
-                console.error("Failed to set color:", response.statusText);
-            }
-        }).catch((error) => {
-            console.error("Error setting color:", error);
-        });
-    };
+        
+        // Update brightness only if allowed by context
+        if (shouldUpdateValue(uuid, 'brightness', initialBrightness)) {
+            setBrightness(initialBrightness);
+        }
+        
+        // Update color only if allowed by context
+        if (shouldUpdateValue(uuid, 'color', initialColor)) {
+            setLedColor(initialColor);
+        }
+    }, [initialBrightness, initialName, initialLocation, battery, initialColor, uuid, shouldUpdateValue]);
 
     const handleColorChange = (color) => {
-        setLedColor(color);
-        sendColorRequest(color);
-        setShowColorPicker(false);
+        // DON'T update UI immediately - let context handle it
+        console.log('Color change - sending command:', color);
+        
+        // Send command through context
+        sendCommand(uuid, 'color', color, () => 
+            fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data: `{"type":"SET_COLOR","value":"${color}"}`,
+                    uuid: uuid
+                }),
+            })
+        );
     };
-    const sendBrightnessRequest = (value) => {
-        fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                data: `{"type":"SET_BRIGHTNESS","value":${value}}`,
-                uuid: uuid
-            }),
-        }).then((response) => {
-            if (response.ok) {
-                console.log("Brightness set successfully:", value);
-            } else {
-                console.error("Failed to set brightness:", response.statusText);
-            }
-        }).catch((error) => {
-            console.error("Error setting brightness:", error);
-        });
+
+    // Temporary state for smooth knob dragging
+    const [tempBrightness, setTempBrightness] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
+
+    const handleKnobChange = (e) => {
+        // Allow smooth dragging by updating temporary state
+        console.log('Knob onChange:', e.value);
+        setTempBrightness(e.value);
+        if (!isDragging) {
+            setIsDragging(true);
+        }
+    };
+
+    const handleKnobComplete = (e) => {
+        // Send command when knob interaction is complete
+        console.log('Knob onChangeComplete:', e.value);
+        if (e.value !== null && e.value !== undefined) {
+            console.log('Sending brightness command via knob:', e.value);
+            sendCommand(uuid, 'brightness', e.value, () => 
+                fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        data: `{"type":"SET_BRIGHTNESS","value":${e.value}}`,
+                        uuid: uuid
+                    }),
+                })
+            );
+        }
+        setTempBrightness(null);
+        setIsDragging(false);
     };
 
     const bufferBrightnessUpdate = (value) => {
-        setBrightness(value);
-        bufferRef.current.push(value);
-
-        if (timeoutRef.current) {
-            clearTimeout(timeoutRef.current);
-        }
-
-        timeoutRef.current = setTimeout(() => {
-            if (bufferRef.current.length > 0) {
-                const lastValue = bufferRef.current[bufferRef.current.length - 1];
-                sendBrightnessRequest(lastValue);
-                bufferRef.current = []; // Clear buffer
-            }
-        }, 500);
+        // For button clicks, send command directly
+        console.log('Button click - sending brightness command:', value);
+        sendCommand(uuid, 'brightness', value, () => 
+            fetch(`${process.env.REACT_APP_API_URL}/Peripheral/makeControlCommand?id_user=${userID}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    data: `{"type":"SET_BRIGHTNESS","value":${value}}`,
+                    uuid: uuid
+                }),
+            })
+        );
     };
 
     const handleIncrementBrightness = () => {
-        const newValue = Math.min(brightness + 1, 100);
-        setBrightness(newValue);
+        const currentDisplayBrightness = getDisplayValue(uuid, 'brightness', brightness);
+        const newValue = Math.min(currentDisplayBrightness + 1, 100);
         bufferBrightnessUpdate(newValue);
     };
 
     const handleDecrementBrightness = () => {
-        const newValue = Math.max(brightness - 1, 0);
-        setBrightness(newValue);
+        const currentDisplayBrightness = getDisplayValue(uuid, 'brightness', brightness);
+        const newValue = Math.max(currentDisplayBrightness - 1, 0);
         bufferBrightnessUpdate(newValue);
     };
+
+    // Check for pending operations and get display values
+    const pendingBrightness = getPendingValue(uuid, 'brightness');
+    const pendingColor = getPendingValue(uuid, 'color');
+    const hasPending = hasPendingOperations(uuid);
+    
+    // Use display values (shows pending value if exists, temp value during drag, or current value)
+    const displayBrightness = isDragging && tempBrightness !== null 
+        ? tempBrightness 
+        : getDisplayValue(uuid, 'brightness', brightness);
+    const displayColor = getDisplayValue(uuid, 'color', ledColor);
 
     return (
         <div
@@ -161,6 +425,9 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                 display: "flex",
                 flexDirection: "column",
                 justifyContent: "space-between",
+                // Add visual indicator for pending state
+                opacity: hasPending ? 0.8 : 1,
+                transition: "opacity 0.3s ease"
             }}
         >
             <CardHeader initialName={name} initialLocation={location} battery={batteryLevel} uuid={uuid} deviceType='LedControl'/>
@@ -182,21 +449,22 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                         border: '2px solid var(--deep-brown)'
                     }}
                     onClick={handleDecrementBrightness}
+                    disabled={pendingBrightness !== null && !isDragging} // Allow during dragging
                 />
 
                 {/* Knob Control with LED in center */}
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <Knob
-                        value={brightness}
+                    <CustomKnob
+                        value={displayBrightness}
                         size={100}
                         min={0}
                         max={100}
                         valueColor="var(--soft-green)"
                         rangeColor="var(--muted-olive)"
-                        textColor="transparent" // Hide the default text
                         strokeWidth={10}
-                        onChange={(e) => bufferBrightnessUpdate(e.value)}
-                        showValue={false} // Disable default value display
+                        onChange={handleKnobChange}
+                        onChangeComplete={handleKnobComplete}
+                        disabled={false} // Always allow dragging for smooth UX
                     />
 
                     {/* LED and Percentage Display in center of knob */}
@@ -210,7 +478,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                             gap: '2px'
                         }}
                     >
-                        <LEDIndicator brightness={brightness} color={ledColor} size={50} />
+                        <LEDIndicator brightness={displayBrightness} color={displayColor} size={50} />
                         <div
                             style={{
                                 fontSize: '12px',
@@ -220,7 +488,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                                 marginTop: '2px'
                             }}
                         >
-                            {brightness}%
+                            {displayBrightness}%
                         </div>
                     </div>
                 </div>
@@ -239,6 +507,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                         border: '2px solid var(--deep-brown)'
                     }}
                     onClick={handleIncrementBrightness}
+                    disabled={pendingBrightness !== null && !isDragging} // Allow during dragging
                 />
             </div>
         </div>

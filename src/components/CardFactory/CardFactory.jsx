@@ -47,7 +47,7 @@ function CardFactory(peripheral) {
             return (
                 <Relay
                     {...commonProps}
-                    initialState={peripheral_data.isOn || false}
+                    initialState={peripheral_data.isOn || false} // Fixed: use initialState instead of initialIsOn
                 />
             );
         default:
