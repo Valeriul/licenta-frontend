@@ -34,24 +34,30 @@ const CustomKnob = ({
 
     const valueToAngle = (val) => {
         const normalizedValue = (val - min) / (max - min);
-        // Map 0-1 to 200° to 340° (140° arc at bottom for bigger arc)
-        // 0% = 200° (bottom-left), 50% = 270° (bottom), 100% = 340° (bottom-right)
-        return 200 + (normalizedValue * 140);
+        // Map 0-1 to 135° to 405° (270° arc: 5π/4 to -π/4, corrected by -π/2)
+        // 0% = 135° (3π/4), 25% = 180° (π), 50% = 225° (5π/4), 75% = 270° (3π/2), 100% = 315° (7π/4)
+        return 135 + (normalizedValue * 270);
     };
 
     const angleToValue = (angle) => {
-        // Convert angle to 200-340 range
+        // Convert angle to our 270° range starting from 135°
         let normalizedAngle = angle;
         
         // Handle angle wrapping
         if (normalizedAngle < 0) normalizedAngle += 360;
         
-        // Clamp to our 140° range
-        if (normalizedAngle < 200) normalizedAngle = 200;
-        if (normalizedAngle > 340) normalizedAngle = 340;
+        // Adjust angle to our coordinate system starting from 135°
+        let adjustedAngle = normalizedAngle - 135;
+        if (adjustedAngle < 0) adjustedAngle += 360;
         
-        // Convert angle to value: 200° = 0%, 340° = 100%
-        const normalizedValue = (normalizedAngle - 200) / 140;
+        // Clamp to our 270° range
+        if (adjustedAngle > 270) {
+            // Choose the closest endpoint
+            adjustedAngle = adjustedAngle > 315 ? 0 : 270;
+        }
+        
+        // Convert angle to value: 0° offset = 0%, 270° offset = 100%
+        const normalizedValue = adjustedAngle / 270;
         const valueRange = max - min;
         return Math.round(min + normalizedValue * valueRange);
     };
@@ -152,24 +158,35 @@ const CustomKnob = ({
     
     // Create SVG path for the arc
     const createArcPath = (startAngle, endAngle, radius, centerX, centerY) => {
+        // Convert to actual end angle (handling wrap-around)
+        let actualEndAngle = endAngle;
+        while (actualEndAngle >= 360) {
+            actualEndAngle -= 360;
+        }
+        
         const start = {
             x: centerX + radius * Math.cos((startAngle * Math.PI) / 180),
             y: centerY + radius * Math.sin((startAngle * Math.PI) / 180)
         };
         const end = {
-            x: centerX + radius * Math.cos((endAngle * Math.PI) / 180),
-            y: centerY + radius * Math.sin((endAngle * Math.PI) / 180)
+            x: centerX + radius * Math.cos((actualEndAngle * Math.PI) / 180),
+            y: centerY + radius * Math.sin((actualEndAngle * Math.PI) / 180)
         };
         
-        // For our 140° arc from 200° to 340°
-        const largeArcFlag = '0'; // 140° is less than 180°
+        // Calculate arc span
+        let arcSpan = endAngle - startAngle;
+        while (arcSpan < 0) arcSpan += 360;
+        while (arcSpan >= 360) arcSpan -= 360;
+        
+        const largeArcFlag = arcSpan > 180 ? '1' : '0';
         const sweepFlag = '1'; // Clockwise direction
         
         return `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArcFlag} ${sweepFlag} ${end.x} ${end.y}`;
     };
 
-    const backgroundPath = createArcPath(200, 340, radius, centerX, centerY);
-    const valuePath = createArcPath(200, currentAngle, radius, centerX, centerY);
+    const backgroundPath = createArcPath(135, 405, radius, centerX, centerY); // 270° arc (135° to 45°)
+    const currentAngleForPath = 135 + ((currentValue - min) / (max - min)) * 270;
+    const valuePath = createArcPath(135, currentAngleForPath, radius, centerX, centerY);
 
     // Calculate handle position
     const handleX = centerX + radius * Math.cos((currentAngle * Math.PI) / 180);
@@ -301,8 +318,9 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
     const { shouldUpdateValue, hasPendingOperations, sendCommand, getPendingValue, getDisplayValue } = usePendingState();
     const userID = getUserId();
 
-    const bufferRef = useRef([]);
-    const timeoutRef = useRef(null);
+    // Temporary state for smooth knob dragging
+    const [tempBrightness, setTempBrightness] = useState(null);
+    const [isDragging, setIsDragging] = useState(false);
 
     // Update state only when context allows it (no pending or values match)
     useEffect(() => {
@@ -311,8 +329,8 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
         setLocation(initialLocation);
         setBatteryLevel(battery);
         
-        // Update brightness only if allowed by context
-        if (shouldUpdateValue(uuid, 'brightness', initialBrightness)) {
+        // Update brightness only if allowed by context AND not currently dragging
+        if (shouldUpdateValue(uuid, 'brightness', initialBrightness) && !isDragging) {
             setBrightness(initialBrightness);
         }
         
@@ -320,7 +338,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
         if (shouldUpdateValue(uuid, 'color', initialColor)) {
             setLedColor(initialColor);
         }
-    }, [initialBrightness, initialName, initialLocation, battery, initialColor, uuid, shouldUpdateValue]);
+    }, [initialBrightness, initialName, initialLocation, battery, initialColor, uuid, shouldUpdateValue, isDragging]);
 
     const handleColorChange = (color) => {
         // DON'T update UI immediately - let context handle it
@@ -338,10 +356,6 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
             })
         );
     };
-
-    // Temporary state for smooth knob dragging
-    const [tempBrightness, setTempBrightness] = useState(null);
-    const [isDragging, setIsDragging] = useState(false);
 
     const handleKnobChange = (e) => {
         // Allow smooth dragging by updating temporary state
@@ -404,10 +418,21 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
     const pendingColor = getPendingValue(uuid, 'color');
     const hasPending = hasPendingOperations(uuid);
     
-    // Use display values (shows pending value if exists, temp value during drag, or current value)
-    const displayBrightness = isDragging && tempBrightness !== null 
-        ? tempBrightness 
-        : getDisplayValue(uuid, 'brightness', brightness);
+    // Use display values with proper blocking during pending states
+    const finalDisplayBrightness = (() => {
+        // If dragging, use temp value for smooth interaction
+        if (isDragging && tempBrightness !== null) {
+            return tempBrightness;
+        }
+        // If there's a pending brightness operation and we're not dragging, 
+        // show the pending value to prevent jumps
+        if (pendingBrightness !== null && !isDragging) {
+            return pendingBrightness;
+        }
+        // Otherwise use the current brightness value
+        return brightness;
+    })();
+    
     const displayColor = getDisplayValue(uuid, 'color', ledColor);
 
     return (
@@ -455,7 +480,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                 {/* Knob Control with LED in center */}
                 <div style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <CustomKnob
-                        value={displayBrightness}
+                        value={finalDisplayBrightness}
                         size={100}
                         min={0}
                         max={100}
@@ -478,7 +503,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                             gap: '2px'
                         }}
                     >
-                        <LEDIndicator brightness={displayBrightness} color={displayColor} size={50} />
+                        <LEDIndicator brightness={finalDisplayBrightness} color={displayColor} size={50} />
                         <div
                             style={{
                                 fontSize: '12px',
@@ -488,7 +513,7 @@ function Led({ initialBrightness, initialName, initialLocation, battery, uuid, i
                                 marginTop: '2px'
                             }}
                         >
-                            {displayBrightness}%
+                            {finalDisplayBrightness}%
                         </div>
                     </div>
                 </div>
